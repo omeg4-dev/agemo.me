@@ -1,0 +1,20 @@
+{
+  "name": "agemo-me",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/fetch-repos.mjs && astro build",
+    "build:offline": "astro build",
+    "preview": "astro preview --port 4321",
+    "test:unit": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "verify": "npm run build && npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "astro": "^5.0.0",
+    "@playwright/test": "^1.49.0"
+  }
+}
