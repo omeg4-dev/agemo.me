@@ -164,7 +164,7 @@ from.
 | `--bg` | `#0B0D0F` | page ground |
 | `--surface` | `#14181C` | cards, raised blocks |
 | `--text` | `#E6EAEE` | body |
-| `--muted` | `#6B7785` | secondary text, metadata |
+| `--muted` | `#8B97A5` | secondary text, metadata |
 | `--accent` | `#33B1FF` | primary accent |
 | `--accent-2` | `#78A9FF` | gradient partner, hover |
 | `--live` | `#FF7EB6` | live indicators **only** |
@@ -174,7 +174,11 @@ derived from a hash of the repository name and desaturated toward `--accent`, so
 the grid never becomes a rainbow.
 
 Contrast: all text pairs meet **WCAG AA** (4.5:1 body, 3:1 large). This is
-verified, not assumed.
+verified by a unit test over `tokens.css`, not assumed.
+
+`--muted` was originally drafted as `#6B7785`, which measures 4.27:1 on `--bg`
+and 3.91:1 on `--surface` — it fails the AA requirement this same section
+mandates. It is lightened to `#8B97A5` (6.55:1 and 6.00:1) at the same hue.
 
 ### 6.3 Motion
 
