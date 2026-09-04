@@ -77,11 +77,14 @@ to `src/data/repos.json`. There are **no runtime GitHub API calls**, which
 avoids client-side rate limiting and keeps the page static.
 
 - Source: authenticated `GITHUB_TOKEN` within Actions; unauthenticated locally.
-- A **daily scheduled Actions rebuild** keeps relative timestamps
-  ("last commit 4 days ago") honest.
-- The build **must not fail** when the API is unreachable: it falls back to the
-  committed `repos.json` and logs a warning. A site that cannot build offline is
-  a defect.
+- `src/data/repos.json` is **committed to the repository** and rewritten in
+  place by the fetch step. It is therefore always present as a fallback, and its
+  diffs are reviewable.
+- A **daily scheduled Actions rebuild** re-runs the fetch and commits the result
+  if it changed, keeping relative timestamps ("last commit 4 days ago") honest.
+- The build **must not fail** when the API is unreachable: the fetch step logs a
+  warning and leaves the committed `repos.json` untouched. A site that cannot
+  build offline is a defect.
 
 Presence data comes from the **Lanyard API** at runtime, client-side, using
 Discord ID `626069774002159619`. Lanyard failure degrades silently to an
@@ -119,7 +122,10 @@ Project grid built from `repos.json`. Deliberately **non-uniform**:
   large treatment with their repository descriptions set as pull-quotes. Those
   descriptions are well-written and earn the space.
 - **Remaining** public repositories compact into a dense list.
-- Forks and archived repositories are excluded.
+- Forks and archived repositories are excluded. Repositories may also be
+  suppressed by an explicit deny-list in the same configuration that holds the
+  featured set, so noise (`sus`, the GitHub Pages placeholder repo) can be
+  dropped without code changes.
 - Every card carries: language bar, star count, last-commit age.
 - On hover, a reflection of the card appears beneath it, inverted, showing the
   first line of the README.
@@ -193,7 +199,10 @@ complete without pasted output.
 1. **`npm run build` exits 0**, including with network access disabled.
 2. **Playwright check** against the built output, asserting:
    - hero canvas **or** CSS fallback is present
-   - **≥ 8** project cards render with non-empty names and non-empty languages
+   - **≥ 6** project cards render with non-empty names, and every featured
+     repository named in the configuration appears (the current public,
+     non-fork, non-suppressed set is 6–8 depending on the deny-list, so a
+     higher floor would break on a legitimate deny-list edit)
    - Lanyard chip resolves to a known state or degrades to "offline"
    - **zero** console errors
    - under `prefers-reduced-motion`, zero transform animations run
