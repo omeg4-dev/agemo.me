@@ -4,8 +4,13 @@ import { readFileSync } from 'node:fs';
 
 const css = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
 
-function token(name) {
-  const m = css.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+function token(name, source = css) {
+  const stripped = stripComments(source);
+  const m = stripped.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
   assert.ok(m, `token --${name} not found in tokens.css`);
   return m[1];
 }
@@ -42,4 +47,9 @@ test('accent colours meet large-text AA (3:1) on both grounds', () => {
     assert.ok(ratio(token(t), token('bg')) >= 3, `--${t} on --bg`);
     assert.ok(ratio(token(t), token('surface')) >= 3, `--${t} on --surface`);
   }
+});
+
+test('a commented-out token is not accepted', () => {
+  const fixture = `:root {\n  /* --bg: #0B0D0F; */\n}`;
+  assert.throws(() => token('bg', fixture));
 });
