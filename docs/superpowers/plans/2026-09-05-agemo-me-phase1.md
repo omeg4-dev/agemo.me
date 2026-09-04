@@ -689,18 +689,42 @@ curl -sL -o /tmp/plexmono.zip "https://fonts.google.com/download?family=IBM%20Pl
 
 Extract `InstrumentSerif-Regular.ttf` and `IBMPlexMono-Regular.ttf`, then convert to subset woff2 (Latin + Greek Ω, U+03A9):
 
+The range must cover every glyph the built site renders, not just Latin:
+Ω (U+03A9), the footer's ⟷ (U+27F7), the star in card metadata ★ (U+2605),
+the em dash and ellipsis used in presence copy (U+2014, U+2026), the 404's
+← and the dotfiles → (U+2190, U+2192), and the block-drawing characters in
+the Machine ASCII mark (U+2580–U+2588). Omitting any of these renders it as
+tofu or silently falls back to a system font.
+
 ```bash
 pip install --user fonttools brotli
+RANGE="U+0000-00FF,U+03A9,U+2013-2014,U+2026,U+2190,U+2192,U+2580-2588,U+2605,U+27F7"
 pyftsubset /tmp/InstrumentSerif-Regular.ttf \
-  --unicodes="U+0000-00FF,U+03A9,U+27F7,U+2192" \
+  --unicodes="$RANGE" \
   --flavor=woff2 --output-file=public/fonts/instrument-serif.woff2
 pyftsubset /tmp/IBMPlexMono-Regular.ttf \
-  --unicodes="U+0000-00FF,U+03A9,U+27F7,U+2192" \
+  --unicodes="$RANGE" \
   --flavor=woff2 --output-file=public/fonts/plex-mono.woff2
 ls -lh public/fonts/
 ```
 
 Expected: both files present, each well under 40 KB. If either exceeds 40 KB the subset did not apply — re-check the `--unicodes` argument.
+
+If a source face genuinely lacks the block-drawing glyphs (Instrument Serif
+does not carry them), that is fine — the Machine mark is set in the mono
+face. Verify with:
+
+```bash
+python3 -c "
+from fontTools.ttLib import TTFont
+for f in ['public/fonts/instrument-serif.woff2','public/fonts/plex-mono.woff2']:
+    cmap = TTFont(f).getBestCmap()
+    print(f, [hex(c) for c in (0x3A9,0x2605,0x2014,0x2026,0x2190,0x2192,0x27F7) if c in cmap])
+"
+```
+
+Expected: the mono face reports every codepoint listed. If ★ or ⟷ is missing
+from **both** faces, pick a fallback that has them and record the swap.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -912,7 +936,8 @@ Expected: FAIL — `[data-hero]` not found.
     color: var(--accent);
     transform: scaleY(-1);
     filter: blur(1.5px);
-    opacity: 0.42;
+    opacity: calc(0.42 * var(--refl-vis));
+    transition: opacity var(--dur-3) var(--ease);
     -webkit-mask-image: linear-gradient(to top, transparent 5%, #000 85%);
     mask-image: linear-gradient(to top, transparent 5%, #000 85%);
   }
@@ -927,8 +952,13 @@ Expected: FAIL — `[data-hero]` not found.
     transition: opacity var(--dur-3) var(--ease);
   }
   .hero__canvas[data-active] { opacity: 1; }
-  /* When the shader is live, the CSS stand-in steps aside. */
-  .hero:has([data-mirror-canvas][data-active]) .hero__reflection { opacity: 0; }
+
+  /* When the shader is live, the CSS stand-in steps aside. This is a
+     multiplier rather than an `opacity: 0` rule because Task 7 re-sets
+     .hero__reflection's opacity from --dive in a later rule, which would
+     otherwise win on source order and leave both reflections visible. */
+  .hero { --refl-vis: 1; }
+  .hero:has([data-mirror-canvas][data-active]) { --refl-vis: 0; }
 
   .hero__hint {
     position: absolute;
@@ -1372,7 +1402,8 @@ Inside the existing `<style>` block, add:
   }
   .hero__reflection {
     transform: scaleY(calc(-1 + var(--dive) * 2)) translateY(calc(var(--dive) * -14vh));
-    opacity: calc(0.42 + var(--dive) * 0.58);
+    /* --refl-vis keeps the shader's override authoritative — see Task 5. */
+    opacity: calc((0.42 + var(--dive) * 0.58) * var(--refl-vis));
     filter: blur(calc(1.5px * (1 - var(--dive))));
   }
   .hero__waterline { transform: scaleX(calc(1 - var(--dive) * 0.85)); opacity: calc(0.55 - var(--dive) * 0.55); }
@@ -1388,7 +1419,7 @@ Then extend the existing reduced-motion block in the same file so nothing is tra
     /* No scaleY flip: the reflection is rendered upright and simply faded. */
     .hero__reflection {
       transform: none;
-      opacity: 0.42;
+      opacity: calc(0.42 * var(--refl-vis));
       filter: none;
       -webkit-mask-image: none;
       mask-image: none;
