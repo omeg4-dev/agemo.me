@@ -1,0 +1,24 @@
+:root {
+  /* palette — spec §6.2 */
+  --bg: #0B0D0F;
+  --surface: #14181C;
+  --text: #E6EAEE;
+  --muted: #8B97A5;
+  --accent: #33B1FF;
+  --accent-2: #78A9FF;
+  --live: #FF7EB6;
+
+  /* type — spec §6.1 */
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* motion — one easing, one duration scale (spec §6.3) */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-1: 160ms;
+  --dur-2: 420ms;
+  --dur-3: 900ms;
+
+  /* layout */
+  --measure: 68ch;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+}
