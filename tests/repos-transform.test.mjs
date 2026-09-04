@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { selectRepos, relativeAge, accentFor } from '../scripts/repos-transform.mjs';
 
+const DAY = 86_400_000;
+
 const raw = [
   { name: 'mc-jukebox', description: 'A jukebox.', language: 'Python', stargazers_count: 3,
     pushed_at: '2026-09-02T20:04:49Z', html_url: 'u/mc', fork: false, archived: false, private: false },
@@ -54,6 +56,23 @@ test('relativeAge renders human spans', () => {
   assert.equal(relativeAge('2026-09-01T00:00:00Z', now), '4 days ago');
   assert.equal(relativeAge('2026-07-05T00:00:00Z', now), '2 months ago');
   assert.equal(relativeAge('2024-09-05T00:00:00Z', now), '2 years ago');
+});
+
+test('relativeAge handles the months/years boundary correctly', () => {
+  const now = new Date('2026-09-05T00:00:00Z');
+  const daysAgo = (n) => new Date(now.getTime() - n * DAY).toISOString();
+  assert.equal(relativeAge(daysAgo(359), now), '11 months ago');
+  assert.equal(relativeAge(daysAgo(360), now), '12 months ago');
+  assert.equal(relativeAge(daysAgo(364), now), '12 months ago');
+  assert.equal(relativeAge(daysAgo(365), now), 'last year');
+  assert.equal(relativeAge(daysAgo(366), now), 'last year');
+  assert.equal(relativeAge(daysAgo(729), now), 'last year');
+  assert.equal(relativeAge(daysAgo(730), now), '2 years ago');
+});
+
+test('relativeAge returns "unknown" for a malformed ISO string, never NaN', () => {
+  const now = new Date('2026-09-05T00:00:00Z');
+  assert.equal(relativeAge('garbage', now), 'unknown');
 });
 
 test('accentFor is deterministic and stays in the cyan-blue arc', () => {

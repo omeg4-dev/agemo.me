@@ -16,12 +16,16 @@ export function accentFor(name) {
 }
 
 export function relativeAge(iso, now = new Date()) {
-  const days = Math.floor((now.getTime() - new Date(iso).getTime()) / DAY);
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return 'unknown';
+  const days = Math.floor((now.getTime() - then) / DAY);
   if (days <= 0) return 'today';
   if (days === 1) return 'yesterday';
   if (days < 30) return `${days} days ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return months === 1 ? 'last month' : `${months} months ago`;
+  if (days < 365) {
+    const months = Math.floor(days / 30);
+    return months === 1 ? 'last month' : `${months} months ago`;
+  }
   const years = Math.floor(days / 365);
   return years === 1 ? 'last year' : `${years} years ago`;
 }
