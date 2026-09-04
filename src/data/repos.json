@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-09-04T22:27:50.149Z",
+  "featured": [
+    {
+      "name": "mc-jukebox",
+      "description": "A Minecraft jukebox for the Noctalia bar. Discs pop out, drop in and land with a squash — drawn entirely in Cairo.",
+      "language": "Python",
+      "stars": 0,
+      "pushedAt": "2026-09-02T20:04:49Z",
+      "url": "https://github.com/omeg4-dev/mc-jukebox",
+      "accent": "hsl(204 78% 62%)",
+      "readmeLine": "💿 mc-jukebox"
+    },
+    {
+      "name": "magpie",
+      "description": "A clipboard that remembers pictures. Watches the Wayland clipboard, OCRs what it catches, and gives it back as a gallery.",
+      "language": "Python",
+      "stars": 0,
+      "pushedAt": "2026-09-02T20:01:01Z",
+      "url": "https://github.com/omeg4-dev/magpie",
+      "accent": "hsl(204 78% 62%)",
+      "readmeLine": "🐦‍⬛ magpie"
+    },
+    {
+      "name": "hypr-keybind-overlay",
+      "description": "Your keyboard, floating in glass, with every bound key lit up. A Hyprland layer-shell overlay that reads your live config.",
+      "language": "Python",
+      "stars": 1,
+      "pushedAt": "2026-09-02T20:00:58Z",
+      "url": "https://github.com/omeg4-dev/hypr-keybind-overlay",
+      "accent": "hsl(214 78% 62%)",
+      "readmeLine": "⌨️ keybind-overlay"
+    },
+    {
+      "name": "gamehub",
+      "description": "A Wii-style living-room console: the TV is the screen, everyone's phone is the remote. Point, flick, press A.",
+      "language": "JavaScript",
+      "stars": 0,
+      "pushedAt": "2026-09-02T20:00:56Z",
+      "url": "https://github.com/omeg4-dev/gamehub",
+      "accent": "hsl(208 78% 62%)",
+      "readmeLine": "🎮 Game Hub"
+    }
+  ],
+  "rest": [
+    {
+      "name": "deadlyomega.lol",
+      "description": "",
+      "language": "JavaScript",
+      "stars": 0,
+      "pushedAt": "2026-09-02T20:09:37Z",
+      "url": "https://github.com/omeg4-dev/deadlyomega.lol",
+      "accent": "hsl(212 78% 62%)"
+    },
+    {
+      "name": "snake",
+      "description": "",
+      "language": "Python",
+      "stars": 0,
+      "pushedAt": "2026-09-02T20:09:36Z",
+      "url": "https://github.com/omeg4-dev/snake",
+      "accent": "hsl(215 78% 62%)"
+    }
+  ]
+}
