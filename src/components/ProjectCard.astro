@@ -54,6 +54,39 @@ const age = relativeAge(repo.pushedAt);
   .card:hover, .card:focus-within {
     border-color: var(--repo-accent);
     transform: translateY(-3px);
+    box-shadow:
+      0 12px 40px -18px color-mix(in oklab, var(--repo-accent) 60%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--repo-accent) 30%, transparent);
+  }
+
+  /* Sheen. Animating background-position rather than moving a child means
+     the highlight is clipped by border-radius for free — the card cannot
+     use overflow:hidden, because .card__reflection deliberately hangs
+     outside its bottom edge. */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 38%,
+      color-mix(in oklab, var(--repo-accent) 14%, transparent) 50%,
+      transparent 62%);
+    background-size: 280% 100%;
+    background-position: 100% 0;
+    transition: opacity var(--dur-2) var(--ease);
+  }
+  .card:hover::before, .card:focus-within::before {
+    opacity: 1;
+    animation: card-sheen 1.5s var(--ease);
+  }
+
+  @keyframes card-sheen {
+    from { background-position: 100% 0; }
+    to   { background-position: -60% 0; }
   }
 
   .card a {
@@ -123,5 +156,8 @@ const age = relativeAge(repo.pushedAt);
   @media (prefers-reduced-motion: reduce) {
     .card__reflection { display: none; }
     .card:hover, .card:focus-within { transform: none; }
+    /* The border-colour and shadow still change on hover — the affordance
+       survives; only the travelling highlight goes. */
+    .card::before { display: none; }
   }
 </style>

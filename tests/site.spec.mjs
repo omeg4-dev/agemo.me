@@ -515,3 +515,193 @@ test('no tofu-prone literal glyphs (Ω ★ ⟷) appear anywhere in rendered text
     expect(bodyText).not.toContain(glyph);
   }
 });
+
+// ── Ambient background layer ──────────────────────────────────────────
+// The background is three stacked layers (Ambient.astro): an animated CSS
+// aurora that must look finished on its own, a screen-blended WebGL
+// caustics canvas over it, and a static vignette. The aurora is the
+// no-JS/no-WebGL baseline, so most of these tests are about it surviving
+// the shader's absence rather than about the shader itself.
+
+test('the ambient shader claims its canvas and renders a varying field', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toBeAttached({ timeout: 8000 });
+  // The field animates at 30fps; wait past the first frame so a shader that
+  // drew exactly once cannot be mistaken for one that is running.
+  await page.waitForTimeout(400);
+
+  // The readback MUST happen inside a rAF callback. ambient.js creates its
+  // context without preserveDrawingBuffer, so once the compositor has taken
+  // the frame the drawing buffer is cleared to black — a plain
+  // page.evaluate() readback reliably returns a single flat colour and this
+  // test would fail against a shader that is drawing perfectly. Verified:
+  // same page, same frame, plain readback gave distinct=1/maxSum=0 while
+  // the rAF readback gave distinct=703/maxSum=139.
+  const { distinctColours, nonBlack } = await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const canvas = document.querySelector('[data-ambient-canvas]');
+      const gl = canvas.getContext('webgl');
+      const w = canvas.width, h = canvas.height;
+      const px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      const seen = new Set();
+      let nonBlack = 0;
+      for (let y = 0; y < h; y += Math.max(1, Math.floor(h / 48))) {
+        for (let x = 0; x < w; x += Math.max(1, Math.floor(w / 48))) {
+          const i = (y * w + x) * 4;
+          seen.add(`${px[i]},${px[i + 1]},${px[i + 2]}`);
+          if (px[i] + px[i + 1] + px[i + 2] > 6) nonBlack++;
+        }
+      }
+      resolve({ distinctColours: seen.size, nonBlack });
+    }));
+  }));
+
+  // A shader that linked but drew nothing reads back as one flat colour.
+  // The caustics/motes/vignette must produce real variation AND actual
+  // light — an all-black field would screen-blend to a no-op, i.e. the
+  // canvas would be live but invisible, which is the failure this catches.
+  expect(distinctColours).toBeGreaterThan(8);
+  expect(nonBlack).toBeGreaterThan(20);
+});
+
+test('the ambient layer never intercepts pointer events', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toBeAttached({ timeout: 8000 });
+  // .ambient is position:fixed across the entire viewport, so if it were
+  // hit-testable it would swallow every click on the page. Ask the browser
+  // what is actually on top at the viewport centre and at a real link.
+  const topAtCentre = await page.evaluate(() => {
+    const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    return el ? el.className.toString() : 'none';
+  });
+  expect(topAtCentre).not.toContain('ambient');
+
+  const link = page.locator('[data-project] a').first();
+  await link.scrollIntoViewIfNeeded();
+  const box = await link.boundingBox();
+  const topAtLink = await page.evaluate(
+    ([x, y]) => {
+      const el = document.elementFromPoint(x, y);
+      return el ? el.className.toString() : 'none';
+    },
+    [box.x + box.width / 2, box.y + 10],
+  );
+  expect(topAtLink).not.toContain('ambient');
+});
+
+test('scrolling drives the document depth property from 0 to 1', async ({ page }) => {
+  await page.goto('/');
+  const read = () => page.evaluate(
+    () => Number(getComputedStyle(document.documentElement).getPropertyValue('--depth')),
+  );
+  expect(await read()).toBeCloseTo(0, 2);
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(300);
+  // At the very bottom of the document depth must reach exactly 1 — a
+  // clamp that stops short means the background never reaches its
+  // deepest state on any real screen.
+  expect(await read()).toBeCloseTo(1, 2);
+});
+
+test('the aurora is a finished background on its own when WebGL is unavailable', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    const orig = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      if (type === 'webgl' || type === 'experimental-webgl') return null;
+      return orig.call(this, type, ...args);
+    };
+  });
+  const errors = [];
+  page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('pageerror', (err) => errors.push(err.message));
+
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toHaveCount(0);
+
+  const aurora = page.locator('.ambient__aurora');
+  await expect(aurora).toBeAttached();
+  const { opacity, hasGradient, animated } = await aurora.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      opacity: Number(cs.opacity),
+      hasGradient: cs.backgroundImage.includes('gradient'),
+      animated: cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0.5,
+    };
+  });
+  // Without these the fallback is a flat dark rectangle — technically
+  // "present" but not a background anyone would call alive.
+  expect(opacity).toBeGreaterThan(0.5);
+  expect(hasGradient).toBe(true);
+  expect(animated).toBe(true);
+  expect(errors).toEqual([]);
+  await ctx.close();
+});
+
+test('reduced motion stops the ambient shader and freezes the aurora', async ({ browser }) => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+
+  // ambient.js must decline to start at all, rather than starting and
+  // being visually frozen — an always-on 30fps rAF loop is exactly the
+  // battery cost a reduced-motion preference is asking us to avoid.
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toHaveCount(0);
+  await expect(page.locator('.ambient__canvas')).toBeHidden();
+
+  // The aurora stays, and stays visible — reduced motion removes movement,
+  // not the background.
+  const { display, opacity } = await page.locator('.ambient__aurora').evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { display: cs.display, opacity: Number(cs.opacity) };
+  });
+  expect(display).not.toBe('none');
+  expect(opacity).toBeGreaterThan(0.5);
+  await ctx.close();
+});
+
+test('losing the ambient WebGL context leaves the aurora as the background', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toBeAttached({ timeout: 8000 });
+
+  const errors = [];
+  page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('pageerror', (err) => errors.push(err.message));
+
+  const mechanism = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-ambient-canvas]');
+    const gl = canvas.getContext('webgl');
+    const ext = gl && gl.getExtension('WEBGL_lose_context');
+    if (ext) { ext.loseContext(); return 'WEBGL_lose_context'; }
+    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+    return 'dispatched-event';
+  });
+
+  // Without this the canvas stays screen-blended over the aurora as a dead
+  // black rectangle — screen(x, black) is a no-op, so the page would look
+  // fine while silently having lost the whole caustics layer.
+  await expect(page.locator('[data-ambient-canvas][data-active]')).toHaveCount(0, { timeout: 2000 });
+  await expect(page.locator('.ambient__aurora')).toBeVisible();
+  expect(errors).toEqual([]);
+  test.info().annotations.push({ type: 'ambient-context-loss-mechanism', description: mechanism });
+});
+
+test('the ambient layer adds no horizontal overflow at any width', async ({ page }) => {
+  for (const width of [320, 375, 768, 1440, 2560]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.waitForTimeout(250);
+    // .ambient__aurora is deliberately inset:-20% and scaled past 1 by its
+    // keyframes; .ambient must clip that, or the page gains a horizontal
+    // scrollbar that nothing else on the page explains.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, `horizontal overflow at ${width}px`).toBe(0);
+  }
+});

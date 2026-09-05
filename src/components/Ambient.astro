@@ -1,0 +1,88 @@
+---
+/*
+ * The living background. Three stacked layers, all inert to the pointer:
+ *
+ *   .ambient__aurora   opaque CSS gradient wash, slowly drifting. This is
+ *                      the layer that survives with no JS and no WebGL, so
+ *                      it has to look finished on its own — it is not a
+ *                      grey placeholder waiting for the shader.
+ *   canvas             ambient.js caustics/motes/cursor-light, screen-blended
+ *                      over the aurora. Absent until the shader claims it.
+ *   .ambient__vignette static frame darkening, keeps light off the edges.
+ *
+ * Fixed and behind everything: see base.css, which lifts real content to
+ * z-index 1 so this can sit at 0 without the body background burying it.
+ */
+---
+<div class="ambient" aria-hidden="true">
+  <div class="ambient__aurora"></div>
+  <canvas class="ambient__canvas" data-ambient-canvas></canvas>
+  <div class="ambient__vignette"></div>
+</div>
+
+<style>
+  .ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    /* Its own stacking context, so the canvas's screen blend composites
+       against the aurora below it and not against the whole page. */
+    isolation: isolate;
+  }
+
+  .ambient__aurora {
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(38vw 38vw at 22% 18%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
+      radial-gradient(46vw 46vw at 78% 32%, color-mix(in oklab, var(--accent-2) 16%, transparent), transparent 72%),
+      radial-gradient(52vw 52vw at 50% 88%, color-mix(in oklab, var(--live) 9%, transparent), transparent 70%),
+      var(--bg);
+    filter: blur(40px) saturate(1.15);
+    /* Deeper water: the wash cools and dims as the document scrolls. */
+    opacity: calc(1 - var(--depth, 0) * 0.35);
+    animation: aurora-drift 46s var(--ease) infinite alternate;
+  }
+
+  @keyframes aurora-drift {
+    from { transform: translate3d(-2.5%, -1.5%, 0) scale(1.05); }
+    to   { transform: translate3d(2.5%, 2%, 0) scale(1.14); }
+  }
+
+  .ambient__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity var(--dur-3) var(--ease);
+  }
+  .ambient__canvas[data-active] { opacity: 1; }
+
+  .ambient__vignette {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 90% at 50% 30%, transparent 40%, color-mix(in oklab, var(--bg) 82%, transparent) 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* The global kill switch already freezes the animation and blocks the
+       transform; pinning the aurora to a composed resting position keeps
+       the static frame looking deliberate rather than mid-keyframe. */
+    .ambient__aurora { animation: none; opacity: 0.9; }
+    .ambient__canvas { display: none; }
+  }
+</style>
+
+<script>
+  import { initAmbient } from '../scripts/ambient.js';
+  // Behind first paint on purpose: the aurora is already the finished
+  // background, so the shader has no reason to compete with LCP.
+  const boot = () => initAmbient();
+  if ('requestIdleCallback' in window) requestIdleCallback(boot, { timeout: 2500 });
+  else window.addEventListener('load', boot);
+</script>

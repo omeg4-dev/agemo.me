@@ -1,11 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
+import Ambient from '../components/Ambient.astro';
 import Hero from '../components/Hero.astro';
 import IdentityStrip from '../components/IdentityStrip.astro';
 import Work from '../components/Work.astro';
 import site from '../config/site.mjs';
 ---
 <Base title="agemo" description={site.tagline}>
+  <Ambient />
   <Hero />
   <main>
     <IdentityStrip />

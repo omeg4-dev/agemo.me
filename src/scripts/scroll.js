@@ -27,6 +27,35 @@ function driveDive() {
   window.addEventListener('resize', onScroll, { passive: true });
 }
 
+// --depth: 0 at the top of the document, 1 at the very bottom. Ambient.astro
+// and ambient.js both read it, so the background gets deeper and colder the
+// further down the page you are. Set on <html> rather than the hero because
+// it describes the whole document, not the waterline.
+function driveDepth() {
+  const root = document.documentElement;
+
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    // A document shorter than the viewport has no depth to travel through;
+    // dividing by a max of 0 would otherwise yield NaN and poison the
+    // custom property for every consumer.
+    const depth = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    root.style.setProperty('--depth', depth.toFixed(4));
+  };
+
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  };
+
+  update();
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+}
+
 function revealOnEnter() {
   const targets = document.querySelectorAll('[data-reveal]');
   if (!targets.length) return;
@@ -76,5 +105,6 @@ export function initScroll() {
   // --dive still updates under reduced motion; the CSS simply ignores it,
   // so nothing moves but state stays consistent for anything reading it.
   driveDive();
+  driveDepth();
   revealOnEnter();
 }

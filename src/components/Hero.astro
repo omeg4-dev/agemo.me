@@ -59,13 +59,46 @@
   .hero__omega {
     height: clamp(8rem, 34vw, 26rem);
     width: auto;
+    /* Breathing, not blinking: a 9s cycle on the glow only. The mark's
+       transform belongs to --dive (see below) and must stay untouched, so
+       this animates filter alone — the two never contend. */
+    animation: omega-breathe 9s ease-in-out infinite;
+  }
+
+  @keyframes omega-breathe {
+    0%, 100% { filter: drop-shadow(0 0 18px color-mix(in oklab, var(--accent) 22%, transparent)); }
+    50%      { filter: drop-shadow(0 0 46px color-mix(in oklab, var(--accent) 46%, transparent)); }
   }
 
   .hero__waterline {
+    position: relative;
     width: min(90vw, 1100px);
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--accent), transparent);
     opacity: 0.55;
+  }
+
+  /* A charge running the length of the waterline. This is the one element
+     on the page that never stops moving even at rest, so the hero reads as
+     live rather than as a still image while you decide whether to scroll. */
+  .hero__waterline::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 18%;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent-2), transparent);
+    filter: blur(1px);
+    animation: waterline-run 7.5s var(--ease) infinite;
+  }
+
+  @keyframes waterline-run {
+    0%   { transform: translateX(-20%); opacity: 0; }
+    12%  { opacity: 0.9; }
+    88%  { opacity: 0.9; }
+    100% { transform: translateX(560%); opacity: 0; }
   }
 
   /* The CSS fallback reflection — spec §5.1. Not a copy: inverted,
@@ -112,6 +145,27 @@
     color: var(--muted);
   }
 
+  /* Scroll cue: a drip falling away from the hint, on the same beat as
+     the waterline charge. */
+  .hero__hint::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 0.6rem);
+    width: 1px;
+    height: 1.6rem;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    transform-origin: top;
+    animation: hint-drip 2.6s var(--ease) infinite;
+  }
+
+  @keyframes hint-drip {
+    0%   { transform: scaleY(0); opacity: 0; }
+    30%  { transform: scaleY(1); opacity: 0.8; }
+    70%  { transform: scaleY(1); opacity: 0.8; }
+    100% { transform: scaleY(0) translateY(1.6rem); opacity: 0; }
+  }
+
   .hero { --dive: 0; }
 
   /* Passing through the waterline: the real mark sinks and fades,
@@ -131,6 +185,11 @@
 
   @media (prefers-reduced-motion: reduce) {
     .hero__canvas { display: none; }
+    /* These three exist only to move. Frozen mid-keyframe they would read
+       as artefacts — a stalled dot on the line, a half-drawn tick — so
+       they are removed outright rather than merely stopped. */
+    .hero__waterline::after, .hero__hint::after { display: none; }
+    .hero__omega { animation: none; filter: none; }
     .hero__mark, .hero__waterline, .hero__hint { transform: none; opacity: 1; }
     /* No scaleY flip: the reflection is rendered upright and simply faded. */
     .hero__reflection {

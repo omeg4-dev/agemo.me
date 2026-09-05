@@ -56,3 +56,44 @@ html.js [data-reveal][data-revealed] { opacity: 1; transform: none; }
     transform: none !important;
   }
 }
+
+/* ── Ambient layer plumbing ────────────────────────────────────────────
+ * Ambient.astro is position:fixed at z-index 0. Real content therefore
+ * has to be lifted explicitly, or the body background paints over it.
+ * Both children of <body> are named here rather than using a blanket
+ * `body > *` so that adding an element later is a deliberate act.
+ */
+.hero-stage, main { position: relative; z-index: 1; }
+
+/* --depth is 0 at the top of the document and 1 at the bottom. scroll.js
+ * owns it; the default here keeps every consumer valid with no JS. */
+:root { --depth: 0; }
+
+/*
+ * Film grain over everything. Static SVG turbulence stepped around by
+ * animation so it flickers like real grain instead of sitting there as a
+ * fixed pattern — a still noise texture reads as a dirty screen.
+ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 700ms steps(1) infinite;
+}
+
+@keyframes grain-shift {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-3%, 2%); }
+  40%  { transform: translate(2%, -3%); }
+  60%  { transform: translate(-2%, -2%); }
+  80%  { transform: translate(3%, 1%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; opacity: 0.025; }
+}
