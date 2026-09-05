@@ -76,3 +76,83 @@ test('the hero exposes an accessible name for the site', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toHaveText(/agemo/i);
 });
+
+test('the shader activates on desktop and hides the CSS stand-in', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toBeAttached({ timeout: 5000 });
+});
+
+test('the shader never activates under reduced motion', async ({ browser }) => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toHaveCount(0);
+  await expect(page.locator('[data-reflection]')).toBeVisible();
+  await ctx.close();
+});
+
+test('the shader never activates on narrow viewports', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toHaveCount(0);
+  await ctx.close();
+});
+
+test('the shader genuinely renders varying pixels, not a flat clear', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toBeAttached({ timeout: 5000 });
+  // Give the ripple a moment to animate past the first frame.
+  await page.waitForTimeout(300);
+  const { distinctColours, anyOpaque } = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-mirror-canvas]');
+    const gl = canvas.getContext('webgl');
+    const w = canvas.width;
+    const h = canvas.height;
+    const pixels = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const seen = new Set();
+    let anyOpaque = false;
+    // Sample a grid rather than every pixel for speed.
+    for (let y = 0; y < h; y += Math.max(1, Math.floor(h / 64))) {
+      for (let x = 0; x < w; x += Math.max(1, Math.floor(w / 64))) {
+        const i = (y * w + x) * 4;
+        seen.add(`${pixels[i]},${pixels[i + 1]},${pixels[i + 2]},${pixels[i + 3]}`);
+        if (pixels[i + 3] > 10) anyOpaque = true;
+      }
+    }
+    return { distinctColours: seen.size, anyOpaque };
+  });
+  // A shader that failed to draw (or only ran gl.clear) would read back as a
+  // single uniform colour across the whole sampled grid, and the wordmark
+  // texture would never contribute any non-transparent alpha.
+  expect(distinctColours).toBeGreaterThan(1);
+  expect(anyOpaque).toBe(true);
+});
+
+test('WebGL context creation failure falls back to the CSS reflection cleanly', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await page.addInitScript(() => {
+    const orig = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      if (type === 'webgl' || type === 'experimental-webgl') return null;
+      return orig.call(this, type, ...args);
+    };
+  });
+  const errors = [];
+  page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('pageerror', (err) => errors.push(err.message));
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toHaveCount(0);
+  await expect(page.locator('[data-reflection]')).toBeVisible();
+  const reflVis = await page.evaluate(
+    () => getComputedStyle(document.querySelector('[data-hero]')).getPropertyValue('--refl-vis').trim(),
+  );
+  expect(reflVis).toBe('1');
+  expect(errors).toEqual([]);
+  await ctx.close();
+});

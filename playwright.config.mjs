@@ -12,7 +12,9 @@ export default defineConfig({
     trace: 'off',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        launchOptions: { args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] } } },
   ],
   webServer: {
     command: 'npm run preview',

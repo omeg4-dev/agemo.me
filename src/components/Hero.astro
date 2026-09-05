@@ -109,3 +109,12 @@
     .hero__reflection { transform: none; opacity: 0.42; }
   }
 </style>
+
+<script>
+  import { initMirror } from '../scripts/mirror.js';
+  // Wait for the display face so the texture is drawn in the right typeface,
+  // and defer past first paint so the shader never competes with LCP.
+  const boot = () => document.fonts.ready.then(() => initMirror());
+  if ('requestIdleCallback' in window) requestIdleCallback(boot, { timeout: 2000 });
+  else window.addEventListener('load', boot);
+</script>
