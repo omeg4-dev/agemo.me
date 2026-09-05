@@ -36,6 +36,17 @@ function revealOnEnter() {
     return;
   }
 
+  // Cross-task fix (Task 8, flagged by Task 7's reviewer): a negative
+  // bottom rootMargin shrinks the effective intersection root to the top
+  // 88% of the viewport. A [data-reveal] element sitting at the true end
+  // of the document, with no scrollable buffer below it, can scroll only
+  // until its own bottom reaches the viewport's bottom edge — it can never
+  // push far enough up to satisfy the shrunk root, so it never reveals.
+  // That is a content-invisibility trap for whichever section is last on
+  // the page, and every task after this one adds another candidate for
+  // "last". Dropping the shrink to a plain 0px root fixes the mechanism
+  // once instead of requiring every future task to guarantee scroll
+  // buffer below its own section.
   const io = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -44,7 +55,7 @@ function revealOnEnter() {
         io.unobserve(entry.target);
       }
     },
-    { rootMargin: '0px 0px -12% 0px', threshold: 0.15 },
+    { rootMargin: '0px', threshold: 0.15 },
   );
   targets.forEach((el) => io.observe(el));
 }

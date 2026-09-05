@@ -26,15 +26,24 @@ a:focus-visible, button:focus-visible {
   padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
 
-[data-reveal] {
+/*
+ * [data-reveal] elements are visible-by-default (no-JS baseline). Only once
+ * html.js lands (see Base.astro's inline bootstrap, set synchronously before
+ * <body> paints) do they get an invisible starting state to animate out of
+ * via scroll.js's IntersectionObserver. This ordering — visible by default,
+ * JS opts INTO the hidden state — is what keeps content readable with
+ * JavaScript disabled; the inverse (hidden by default, JS opts into visible)
+ * is a content-invisibility trap if the reveal script never runs.
+ */
+html.js [data-reveal] {
   opacity: 0;
   transform: translateY(1.25rem);
   transition: opacity var(--dur-3) var(--ease), transform var(--dur-3) var(--ease);
 }
-[data-reveal][data-revealed] { opacity: 1; transform: none; }
+html.js [data-reveal][data-revealed] { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  html.js [data-reveal] { opacity: 1; transform: none; transition: none; }
 }
 
 /* Global reduced-motion kill switch — spec §6.3, non-negotiable */

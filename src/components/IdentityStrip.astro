@@ -1,0 +1,130 @@
+---
+import site from '../config/site.mjs';
+---
+<section class="identity" data-reveal style={`--chars: ${site.tagline.length}`}>
+  <p class="identity__line">{site.tagline}</p>
+
+  <ul class="identity__chips" data-presence data-discord-id={site.discordId}>
+    <li class="chip">
+      <span class="chip__dot" aria-hidden="true"></span>
+      <span data-presence-state data-state="offline">checking…</span>
+    </li>
+    <li class="chip"><span data-presence-activity>—</span></li>
+    <li class="chip"><span data-clock>—</span></li>
+  </ul>
+</section>
+
+<style>
+  .identity {
+    display: grid;
+    gap: 1.75rem;
+    justify-items: center;
+    text-align: center;
+    padding: clamp(4rem, 12vh, 9rem) var(--gutter);
+  }
+
+  .identity__line {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+    line-height: 1.25;
+    max-width: 22ch;
+    text-wrap: balance;
+  }
+
+  /*
+   * Spec §5.2: typed once on entry, never looping. Done in CSS so the
+   * "exactly three JS modules" constraint holds. The reveal is driven by
+   * [data-revealed] from scroll.js, so it types when it comes into view.
+   *
+   * DEFECT FIX (Task 8 ledger): the brief's original version put width:0
+   * on .identity__line unconditionally, with width:100% reachable only via
+   * an animation gated on [data-revealed] — which JS sets. With JS
+   * disabled, above the 640px breakpoint and without reduced-motion, that
+   * left the tagline at zero width forever: real content, permanently
+   * invisible. Fixed by making the plain, fully-readable line the
+   * default, and only clipping it into the typewriter's zero-width start
+   * state once `html.js` is present (see base.css and Base.astro's inline
+   * bootstrap). No JS -> no `.js` class -> the line above already renders
+   * the full sentence, unclipped, no animation involved.
+   */
+  html.js .identity__line {
+    --chars: 62;
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: none;
+    border-right: 2px solid var(--accent);
+    width: 0;
+  }
+  html.js .identity[data-revealed] .identity__line {
+    animation:
+      type var(--dur-3) steps(var(--chars)) forwards,
+      caret 700ms step-end 6;
+  }
+  @keyframes type  { to { width: 100%; } }
+  @keyframes caret { 50% { border-color: transparent; } }
+
+  /* Below the wrap point the line must be allowed to wrap, so the
+     typewriter is dropped rather than clipping the sentence. */
+  @media (max-width: 640px) {
+    html.js .identity__line {
+      white-space: normal;
+      overflow: visible;
+      width: auto;
+      max-width: 22ch;
+      border-right: 0;
+      animation: none !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js .identity__line {
+      width: auto;
+      white-space: normal;
+      overflow: visible;
+      max-width: 22ch;
+      border-right: 0;
+      animation: none !important;
+    }
+  }
+
+  .identity__chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* Fixed height stops arriving data from shifting layout — spec §5.2. */
+    min-height: 2.25rem;
+    padding: 0 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--muted) 35%, transparent);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .chip__dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    transition: background var(--dur-1) var(--ease);
+  }
+  /* --live is used here and nowhere else — spec §6.2 */
+  .chip:has([data-state='online']) .chip__dot { background: var(--live); }
+  .chip:has([data-state='idle']) .chip__dot,
+  .chip:has([data-state='dnd'])  .chip__dot { background: var(--accent-2); }
+</style>
+
+<script>
+  import { initPresence } from '../scripts/presence.js';
+  initPresence();
+</script>

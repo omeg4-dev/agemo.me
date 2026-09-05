@@ -9,6 +9,17 @@ const { title, description } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Synchronous, non-module classList flip — deliberately NOT one of the
+      three JS modules (mirror.js/scroll.js/presence.js). It runs inline in
+      <head> before <body> is parsed, so there is no flash: content is
+      visible-by-default in CSS (see base.css [data-reveal] rules), and only
+      once this class lands does any element get an invisible starting state
+      to animate out of. No JS at all -> class never appears -> content was
+      never anything but visible. See Task 8 ledger entry for the incident
+      this fixes (typewriter tagline invisible with JS disabled).
+    -->
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0B0D0F" />
