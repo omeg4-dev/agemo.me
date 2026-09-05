@@ -132,6 +132,44 @@ test('the shader genuinely renders varying pixels, not a flat clear', async ({ p
   expect(anyOpaque).toBe(true);
 });
 
+test('losing the WebGL context recovers to the CSS reflection cleanly', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toBeAttached({ timeout: 5000 });
+
+  const errors = [];
+  page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+  page.on('pageerror', (err) => errors.push(err.message));
+
+  const mechanism = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-mirror-canvas]');
+    const gl = canvas.getContext('webgl');
+    const ext = gl && gl.getExtension('WEBGL_lose_context');
+    if (ext) {
+      ext.loseContext();
+      return 'WEBGL_lose_context';
+    }
+    // Fall back to a hand-dispatched event if the extension isn't
+    // available under this browser/driver combination.
+    canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+    return 'dispatched-event';
+  });
+
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toHaveCount(0, { timeout: 2000 });
+
+  const reflVis = await page.evaluate(
+    () => getComputedStyle(document.querySelector('[data-hero]')).getPropertyValue('--refl-vis').trim(),
+  );
+  expect(reflVis).toBe('1');
+
+  const reflection = page.locator('[data-reflection]');
+  await expect(reflection).toBeVisible();
+  const opacity = await reflection.evaluate((el) => Number(getComputedStyle(el).opacity));
+  expect(opacity).toBeGreaterThan(0);
+
+  expect(errors).toEqual([]);
+  test.info().annotations.push({ type: 'context-loss-mechanism', description: mechanism });
+});
+
 test('WebGL context creation failure falls back to the CSS reflection cleanly', async ({ browser }) => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
