@@ -568,9 +568,25 @@ test('the ambient shader claims its canvas and renders a varying field', async (
 test('the ambient layer never intercepts pointer events', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-ambient-canvas][data-active]')).toBeAttached({ timeout: 8000 });
+
   // .ambient is position:fixed across the entire viewport, so if it were
-  // hit-testable it would swallow every click on the page. Ask the browser
-  // what is actually on top at the viewport centre and at a real link.
+  // hit-testable it would swallow every click on the page. TWO independent
+  // defences stop that — pointer-events:none, and content being lifted to
+  // z-index 1 above it — and each needs its own assertion.
+  //
+  // Discrimination note: the elementFromPoint checks below do NOT fail when
+  // pointer-events is flipped to auto, because the z-index defence alone
+  // still keeps content on top. Verified by mutation. So the computed-style
+  // assertion here is the one that actually guards pointer-events, and the
+  // hit-testing assertions guard the stacking. Neither substitutes for the
+  // other.
+  const pointerEvents = await page.evaluate(() => {
+    const root = document.querySelector('.ambient');
+    return [root, ...root.querySelectorAll('*')].map((el) => getComputedStyle(el).pointerEvents);
+  });
+  expect(pointerEvents.length).toBeGreaterThan(1);
+  for (const value of pointerEvents) expect(value).toBe('none');
+
   const topAtCentre = await page.evaluate(() => {
     const el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
     return el ? el.className.toString() : 'none';
@@ -691,14 +707,22 @@ test('losing the ambient WebGL context leaves the aurora as the background', asy
   test.info().annotations.push({ type: 'ambient-context-loss-mechanism', description: mechanism });
 });
 
-test('the ambient layer adds no horizontal overflow at any width', async ({ page }) => {
+test('the page never scrolls horizontally at any width', async ({ page }) => {
+  // Named for what it actually guards. The original intent was to prove
+  // .ambient's `overflow: hidden` contains the aurora, which is deliberately
+  // inset:-20% and scaled past 1 by its keyframes — but that assertion is
+  // untestable and was proven so by mutation: flipping .ambient to
+  // `overflow: visible` does NOT produce any horizontal overflow, because
+  // position:fixed already clips its subtree to the viewport without
+  // contributing to documentElement.scrollWidth. The overflow:hidden there
+  // is belt-and-braces, not load-bearing, and no test can discriminate on
+  // it. What this test does guard — a whole-page regression at five widths,
+  // including any future background element that is NOT fixed — is real, so
+  // it stays under an honest name.
   for (const width of [320, 375, 768, 1440, 2560]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     await page.waitForTimeout(250);
-    // .ambient__aurora is deliberately inset:-20% and scaled past 1 by its
-    // keyframes; .ambient must clip that, or the page gains a horizontal
-    // scrollbar that nothing else on the page explains.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
