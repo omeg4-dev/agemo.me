@@ -28,7 +28,10 @@ test('the wordmark renders as inline SVG, not a font-dependent glyph', async ({ 
 test('the display face is actually applied to a real text element', async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
-  const family = await page.locator('.identity__line').evaluate(
+  // The hero mark is an SVG (Task 4 addendum), so it carries no font-family.
+  // [data-reflection] is the CSS fallback reflection text and is styled
+  // with var(--font-display) — a real text node that actually uses the face.
+  const family = await page.locator('[data-reflection]').evaluate(
     (el) => getComputedStyle(el).fontFamily,
   );
   expect(family).toContain('Instrument Serif');
@@ -51,4 +54,25 @@ test('page logs no console errors', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   expect(errors).toEqual([]);
+});
+
+test('hero renders a real subject and a reflection without JavaScript', async ({ browser }) => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(page.locator('[data-hero] [data-wordmark]')).toBeVisible();
+  await expect(page.locator('[data-hero] [data-reflection]')).toBeVisible();
+  await ctx.close();
+});
+
+test('the reflection reads AGEMO and is hidden from screen readers', async ({ page }) => {
+  await page.goto('/');
+  const reflection = page.locator('[data-hero] [data-reflection]');
+  await expect(reflection).toHaveText(/agemo/i);
+  await expect(reflection).toHaveAttribute('aria-hidden', 'true');
+});
+
+test('the hero exposes an accessible name for the site', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText(/agemo/i);
 });
