@@ -156,3 +156,30 @@ test('WebGL context creation failure falls back to the CSS reflection cleanly', 
   expect(errors).toEqual([]);
   await ctx.close();
 });
+
+test('scrolling drives the hero dive property', async ({ page }) => {
+  await page.goto('/');
+  const read = () => page.locator('[data-hero]').evaluate(
+    (el) => Number(getComputedStyle(el).getPropertyValue('--dive')) || 0,
+  );
+  expect(await read()).toBeCloseTo(0, 1);
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight * 0.75));
+  await page.waitForTimeout(300);
+  expect(await read()).toBeGreaterThan(0.3);
+});
+
+test('reduced motion runs no transform animations', async ({ browser }) => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight));
+  await page.waitForTimeout(500);
+  const moved = await page.evaluate(() =>
+    [...document.querySelectorAll('*')].filter((el) => {
+      const t = getComputedStyle(el).transform;
+      return t && t !== 'none' && t !== 'matrix(1, 0, 0, 1, 0, 0)';
+    }).length,
+  );
+  expect(moved).toBe(0);
+  await ctx.close();
+});
