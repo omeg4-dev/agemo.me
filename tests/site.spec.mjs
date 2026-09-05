@@ -206,12 +206,31 @@ test('scrolling drives the hero dive property', async ({ page }) => {
   expect(await read()).toBeGreaterThan(0.3);
 });
 
+// Task 7 review finding (Vacuous Assertion #5): the transform-only version
+// of this test is redundant with base.css's global reduced-motion kill
+// switch (`transform: none !important` on `*`), which passes on its own
+// and never touches Hero.astro's own opacity resets at all. The reviewer
+// proved the blindness empirically: removing BOTH the `opacity: 1` reset
+// on .hero__mark/.hero__waterline/.hero__hint AND the
+// `opacity: calc(0.42 * var(--refl-vis))` reset on .hero__reflection left
+// the full suite green, while a real reduced-motion browser context showed
+// .hero__mark genuinely fading 1 -> 0 across a scroll. Add opacity
+// assertions, pre- and post-scroll, so those resets are load-bearing.
 test('reduced motion runs no transform animations', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   await page.goto('/');
+  const opacityOf = (sel) => page.locator(sel).evaluate((el) => getComputedStyle(el).opacity);
+
+  // Pre-scroll (--dive: 0): both formulas coincidentally agree here, so
+  // this half alone would not discriminate against the missing resets —
+  // it's the post-scroll read below that does. Kept for a clear before/after.
+  expect(await opacityOf('.hero__mark')).toBe('1');
+  expect(await opacityOf('.hero__reflection')).toBe('0.42');
+
   await page.evaluate(() => window.scrollTo(0, window.innerHeight));
   await page.waitForTimeout(500);
+
   const moved = await page.evaluate(() =>
     [...document.querySelectorAll('*')].filter((el) => {
       const t = getComputedStyle(el).transform;
@@ -219,6 +238,15 @@ test('reduced motion runs no transform animations', async ({ browser }) => {
     }).length,
   );
   expect(moved).toBe(0);
+
+  // Post-scroll (--dive ~ 1): without the reduced-motion opacity resets,
+  // .hero__mark's normal formula (1 - dive * 1.1) clamps to 0, and
+  // .hero__reflection's normal formula ((0.42 + dive * 0.58) * refl-vis)
+  // rises to ~1 — both would diverge from the reduced-motion-frozen
+  // values asserted here.
+  expect(await opacityOf('.hero__mark')).toBe('1');
+  expect(await opacityOf('.hero__reflection')).toBe('0.42');
+
   await ctx.close();
 });
 
@@ -297,6 +325,74 @@ test('tagline is visible without JavaScript on a desktop viewport', async ({ bro
   const clipsContent = await line.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
   expect(clipsContent).toBe(false);
   await ctx.close();
+});
+
+// Post-commit finding (Task 8 ledger): flipping [data-reveal]/.identity__line
+// to visible-by-default fixed the no-JS case, but the inline head bootstrap
+// that set `html.js` ran unconditionally whenever JS was merely enabled —
+// even if scroll.js itself (the only script that ever sets data-revealed)
+// failed to load. That reproduced the exact same content-invisibility trap
+// on a narrower trigger: JS on, scroll.js blocked/404/thrown. Observed on
+// the pre-fix code: {"opacity":"1","width":2,"revealed":false,"jsClass":true}
+// — a real failure hidden behind a `width > 0`-style vacuous check (the
+// typewriter's 2px caret border alone satisfies that). Fixed by having
+// scroll.js's initScroll() add the `js` class itself as its first act, so
+// the hidden starting state is only ever reachable via the same script
+// responsible for reversing it.
+// scroll.js is small enough that Vite inlines its whole bundle straight
+// into an inline `<script type="module">` in the built HTML rather than
+// emitting it as a separate request — confirmed by inspecting dist/index.html
+// (only mirror.js, the large one, gets its own `src=`). That means a naive
+// `page.route('**/*scroll*.js', abort)` matches nothing and silently does
+// not exercise this path at all (a route that never fires is its own kind
+// of vacuous test). Instead, rewrite the served HTML to blow up the
+// specific inline script that contains scroll.js's code (identified by the
+// unique `--dive` custom property it sets), simulating a thrown error
+// partway through module evaluation — before initScroll()'s first line
+// (the classList.add('js') call) ever runs.
+async function breakScrollScript(page) {
+  await page.route('**/', async (route) => {
+    const res = await route.fetch();
+    const body = await res.text();
+    const broken = body.replace(
+      /<script type="module">((?:(?!<\/script>)[\s\S])*--dive(?:(?!<\/script>)[\s\S])*)<\/script>/,
+      '<script type="module">throw new Error("simulated scroll.js failure");</script>',
+    );
+    expect(broken).not.toBe(body); // fail loud if the script was never found/replaced
+    await route.fulfill({ response: res, body: broken });
+  });
+}
+
+test('identity stays visible when scroll.js fails to load', async ({ page }) => {
+  await breakScrollScript(page);
+  await page.goto('/');
+  const line = page.locator('.identity__line');
+  await expect(line).toBeVisible();
+  const info = await line.evaluate((el) => ({
+    width: el.getBoundingClientRect().width,
+    clipsContent: el.scrollWidth > el.clientWidth + 1,
+    jsClass: document.documentElement.classList.contains('js'),
+  }));
+  expect(info.jsClass).toBe(false);
+  // Same vacuous-check trap as Task 8's Defect 1: a bare `width > 0` is
+  // satisfied by the 2px caret border alone. Require real width.
+  expect(info.width).toBeGreaterThan(300);
+  expect(info.clipsContent).toBe(false);
+  await expect(line).toHaveText(/I build things for Linux desktops/);
+});
+
+// Sibling case flagged in the same finding: [data-reveal] sections (not
+// just the tagline) stay opacity:0 forever under `html.js [data-reveal]`
+// with no data-revealed ever set — worse than the tagline case because
+// there is no partial rendering at all, the whole section just never
+// appears.
+test('[data-reveal] sections stay visible when scroll.js fails to load', async ({ page }) => {
+  await breakScrollScript(page);
+  await page.goto('/');
+  const identity = page.locator('.identity');
+  await expect(identity).toBeVisible();
+  const opacity = await identity.evaluate((el) => getComputedStyle(el).opacity);
+  expect(opacity).toBe('1');
 });
 
 // Task 8 ledger — data-reveal/data-revealed had no prior consumer or

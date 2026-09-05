@@ -61,6 +61,18 @@ function revealOnEnter() {
 }
 
 export function initScroll() {
+  // Content-invisibility fix (Task 8 post-commit finding, ledger): this
+  // class used to be set synchronously in Base.astro's <head>, unconditional
+  // on JS merely being enabled. That meant a scroll.js load/parse/runtime
+  // failure left `html.js` set with nothing left to ever flip
+  // [data-reveal] elements to data-revealed — permanently invisible
+  // content. Moving the flip here means the hidden starting state
+  // (base.css's `html.js [data-reveal]`, IdentityStrip.astro's
+  // `html.js .identity__line`) can only ever be reached by the same
+  // script that is responsible for reversing it. If this line never
+  // executes, those elements stay in base.css's visible-by-default state
+  // forever — the same state already proven safe with JS disabled.
+  document.documentElement.classList.add('js');
   // --dive still updates under reduced motion; the CSS simply ignores it,
   // so nothing moves but state stays consistent for anything reading it.
   driveDive();

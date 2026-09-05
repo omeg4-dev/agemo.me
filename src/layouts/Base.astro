@@ -10,16 +10,24 @@ const { title, description } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!--
-      Synchronous, non-module classList flip — deliberately NOT one of the
-      three JS modules (mirror.js/scroll.js/presence.js). It runs inline in
-      <head> before <body> is parsed, so there is no flash: content is
-      visible-by-default in CSS (see base.css [data-reveal] rules), and only
-      once this class lands does any element get an invisible starting state
-      to animate out of. No JS at all -> class never appears -> content was
-      never anything but visible. See Task 8 ledger entry for the incident
-      this fixes (typewriter tagline invisible with JS disabled).
+      Post-commit finding (Task 8 ledger): this used to be a synchronous,
+      inline `classList.add('js')` here in <head>. That closed the no-JS
+      trap but opened a narrower one — the flip ran unconditionally
+      whenever JS was merely *enabled*, regardless of whether scroll.js
+      (the module that actually owns [data-reveal]/data-revealed) ever
+      loaded or executed. If scroll.js 404'd, was blocked, or threw before
+      running, `html.js` still landed, [data-reveal] content and the
+      tagline still went to their clipped starting state via base.css /
+      IdentityStrip.astro, and nothing was left to ever set
+      `data-revealed` — permanently invisible content, same failure class,
+      narrower trigger. Fixed by having scroll.js itself add the `js`
+      class as the first thing initScroll() does (see scroll.js). That
+      makes the hidden starting state conditional on the SAME script that
+      is responsible for ending it: if scroll.js never runs, the class
+      never appears, and base.css's visible-by-default rule is the only
+      state that ever applies — identical to the no-JS path already
+      proven safe. No inline bootstrap script needed any more.
     -->
-    <script is:inline>document.documentElement.classList.add('js');</script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0B0D0F" />
