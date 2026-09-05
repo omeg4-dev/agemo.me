@@ -1,0 +1,58 @@
+---
+import ProjectCard from './ProjectCard.astro';
+import repos from '../data/repos.json';
+
+const { featured, rest } = repos;
+---
+<section class="work" id="work" aria-labelledby="work-heading">
+  <h2 class="work__heading" id="work-heading" data-reveal>Work</h2>
+
+  <div class="work__featured">
+    {featured.map((repo) => <ProjectCard repo={repo} featured />)}
+  </div>
+
+  <div class="work__rest">
+    {rest.map((repo) => <ProjectCard repo={repo} />)}
+  </div>
+</section>
+
+<style>
+  .work {
+    display: grid;
+    gap: 2rem;
+    max-width: 1180px;
+    margin-inline: auto;
+    padding: clamp(3rem, 10vh, 7rem) var(--gutter);
+  }
+
+  .work__heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  /* Featured repos get asymmetric, deliberately non-uniform treatment. */
+  .work__featured {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 860px) {
+    .work__featured { grid-template-columns: 1.35fr 1fr; }
+    /* :global() is required here: ProjectCard.astro's <article> carries a
+       different Astro scoped-CSS hash than Work.astro, so a plain scoped
+       `:nth-child(3)` selector compiles to [data-astro-cid-work]:nth-child(3)
+       and never matches a child stamped with [data-astro-cid-projectcard].
+       Confirmed empirically — without :global() every card's computed
+       grid-column was "auto", i.e. the "asymmetric, deliberately non-uniform
+       treatment" the spec calls for was silently inert. */
+    .work__featured > :global(:nth-child(3)) { grid-column: 1 / -1; }
+  }
+
+  .work__rest {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  }
+</style>

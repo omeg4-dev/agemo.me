@@ -1,0 +1,127 @@
+---
+import { relativeAge } from '../../scripts/repos-transform.mjs';
+
+const { repo, featured = false } = Astro.props;
+const age = relativeAge(repo.pushedAt);
+---
+<article
+  class:list={['card', featured && 'card--featured']}
+  data-project
+  data-reveal
+  style={`--repo-accent: ${repo.accent}`}
+>
+  <a href={repo.url} target="_blank" rel="noopener noreferrer">
+    <h3 class="card__name" data-project-name>{repo.name}</h3>
+    {repo.description && <p class="card__desc">{repo.description}</p>}
+
+    <dl class="card__meta">
+      {repo.language && (
+        <div><dt class="visually-hidden">Language</dt><dd data-project-lang>{repo.language}</dd></div>
+      )}
+      <div>
+        <dt class="visually-hidden">Stars</dt>
+        <dd class="card__stars">
+          {repo.stars}
+          <!-- Star rendered as inline SVG, not the literal ★ (U+2605) — neither
+               Instrument Serif nor IBM Plex Mono carries that codepoint, and it
+               is deliberately excluded from the font subset. See
+               .superpowers/sdd/2026-09-05-agemo-me-phase1/task-4-addendum.md §2. -->
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/>
+          </svg>
+        </dd>
+      </div>
+      <div><dt class="visually-hidden">Last commit</dt><dd data-project-age>{age}</dd></div>
+    </dl>
+  </a>
+
+  <!-- Spec §5.3: inverted reflection showing the README's opening line,
+       falling back to the description when no README was reachable. Purely
+       decorative (aria-hidden) — the real content is the visible card above. -->
+  <div class="card__reflection" aria-hidden="true">
+    {repo.readmeLine || repo.description || repo.name}
+  </div>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid color-mix(in oklab, var(--muted) 22%, transparent);
+    border-radius: 14px;
+    transition: border-color var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+  }
+  .card:hover, .card:focus-within {
+    border-color: var(--repo-accent);
+    transform: translateY(-3px);
+  }
+
+  .card a {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1.4rem;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .card__name {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--repo-accent);
+  }
+
+  .card__desc { color: var(--muted); font-size: 0.85rem; }
+
+  .card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .card__meta div { display: contents; }
+  .card__meta dd { margin: 0; }
+
+  .card__stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+  }
+  .card__stars svg {
+    width: 0.75em;
+    height: 0.75em;
+  }
+
+  .card--featured .card__desc {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2vw, 1.6rem);
+    line-height: 1.3;
+    color: var(--text);
+    text-wrap: pretty;
+  }
+  .card--featured a { padding: clamp(1.6rem, 3vw, 2.6rem); gap: 0.9rem; }
+
+  /* Hover reflection — spec §5.3 */
+  .card__reflection {
+    position: absolute;
+    inset: 100% 1.4rem auto 1.4rem;
+    transform: scaleY(-1);
+    transform-origin: top;
+    font-size: 0.8rem;
+    color: var(--repo-accent);
+    opacity: 0;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(to top, transparent, #000);
+    mask-image: linear-gradient(to top, transparent, #000);
+    transition: opacity var(--dur-2) var(--ease);
+  }
+  .card:hover .card__reflection, .card:focus-within .card__reflection { opacity: 0.5; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card__reflection { display: none; }
+    .card:hover, .card:focus-within { transform: none; }
+  }
+</style>

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import site from '../src/config/site.mjs';
 
 test('page loads with the correct title', async ({ page }) => {
   await page.goto('/');
@@ -454,4 +455,63 @@ test('identity section reveals immediately when IntersectionObserver is unavaila
   await page.goto('/');
   await expect(page.locator('.identity')).toHaveAttribute('data-revealed', '', { timeout: 3000 });
   await ctx.close();
+});
+
+test('the work grid renders enough cards with real data', async ({ page }) => {
+  await page.goto('/');
+  const cards = page.locator('[data-project]');
+  // Floor is 6, not 8: the deny-list may legitimately shrink the set — spec §7.
+  expect(await cards.count()).toBeGreaterThanOrEqual(6);
+
+  for (const name of await page.locator('[data-project-name]').allTextContents()) {
+    expect(name.trim()).not.toBe('');
+  }
+  for (const age of await page.locator('[data-project-age]').allTextContents()) {
+    expect(age.trim()).toMatch(/today|yesterday|ago|last (month|year)/);
+  }
+});
+
+test('every configured featured repo appears', async ({ page }) => {
+  await page.goto('/');
+  const names = (await page.locator('[data-project-name]').allTextContents()).map((n) => n.trim());
+  for (const f of site.featured) expect(names).toContain(f);
+});
+
+test('deny-listed repos never appear', async ({ page }) => {
+  await page.goto('/');
+  const names = (await page.locator('[data-project-name]').allTextContents()).map((n) => n.trim());
+  for (const d of site.deny) expect(names).not.toContain(d);
+});
+
+test('project links open safely in a new tab', async ({ page }) => {
+  await page.goto('/');
+  const link = page.locator('[data-project] a').first();
+  await expect(link).toHaveAttribute('rel', /noopener/);
+  await expect(link).toHaveAttribute('target', '_blank');
+});
+
+// Defect guard (task-4-addendum.md §2): the star must be an <svg>, never a
+// text node containing the literal ★ (U+2605) glyph — neither font face in
+// the subset carries that codepoint, so a literal glyph renders as tofu.
+test('star count is rendered as SVG, never the literal glyph', async ({ page }) => {
+  await page.goto('/');
+  const stars = page.locator('.card__stars');
+  expect(await stars.count()).toBeGreaterThan(0);
+  const first = stars.first();
+  await expect(first.locator('svg')).toHaveCount(1);
+  const text = await first.innerText();
+  expect(text).not.toContain('★');
+});
+
+// Whole-page sweep for every codepoint the font subset deliberately excludes
+// (task-4-addendum.md / ledger T4). These must never appear as literal
+// rendered text anywhere on the page — Ω and ⟷ ship as inline SVG (Hero,
+// Footer) and ★ ships as inline SVG (ProjectCard). Do NOT assert these
+// codepoints ARE in the font subset — they are intentionally absent.
+test('no tofu-prone literal glyphs (Ω ★ ⟷) appear anywhere in rendered text', async ({ page }) => {
+  await page.goto('/');
+  const bodyText = await page.locator('body').innerText();
+  for (const glyph of ['★', '⟷', 'Ω']) {
+    expect(bodyText).not.toContain(glyph);
+  }
 });
