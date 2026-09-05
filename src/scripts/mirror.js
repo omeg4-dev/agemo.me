@@ -56,19 +56,37 @@ function compile(gl, type, src) {
   return s;
 }
 
-// Renders "agemo" to a 2D canvas we can sample as a texture.
+// Renders "agemo" to a 2D canvas we can sample as a texture — upside down,
+// because this is a reflection.
+//
+// The glyphs are mirrored HERE rather than in the shader, and that is
+// deliberate. The obvious-looking alternative, dropping the `1.0 - uv.y`
+// from the fragment shader's texture lookup, does flip the image but also
+// moves it: WebGL's uv.y runs bottom-up while a canvas texture uploads
+// top-down, so `1.0 - uv.y` is what aligns texture row 0 with canvas row 0
+// in the first place. Remove it and the wordmark lands at the bottom of
+// the canvas, a full half-viewport away from the waterline it is supposed
+// to be reflecting in. Mirroring the glyphs in place keeps every existing
+// coordinate — texture layout, shader sampling, canvas offset — untouched.
 function wordmarkTexture(gl, width, height) {
   const c = document.createElement('canvas');
   c.width = width;
   c.height = height;
   const ctx = c.getContext('2d');
   const size = Math.min(width * 0.19, height * 0.62);
+  const top = height * 0.06;
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.font = `${size}px "Instrument Serif", Georgia, serif`;
   ctx.letterSpacing = '0.06em';
-  ctx.fillText('agemo', width / 2, height * 0.06);
+  ctx.save();
+  // Mirror about the text band's own axis, so the glyphs turn over while
+  // still occupying rows [top, top + size].
+  ctx.translate(0, top * 2 + size);
+  ctx.scale(1, -1);
+  ctx.fillText('agemo', width / 2, top);
+  ctx.restore();
 
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);

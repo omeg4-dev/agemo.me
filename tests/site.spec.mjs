@@ -729,3 +729,87 @@ test('the page never scrolls horizontally at any width', async ({ page }) => {
     expect(overflow, `horizontal overflow at ${width}px`).toBe(0);
   }
 });
+
+test('the hero reflection is actually mirrored, not an upright copy', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-mirror-canvas][data-active]')).toBeAttached({ timeout: 8000 });
+  await page.waitForTimeout(400);
+
+  // This was a real bug: the shader rendered the wordmark the right way up,
+  // so the "reflection" under the waterline was a plain copy. The CSS
+  // fallback (transform: scaleY(-1)) was correct the whole time, which is
+  // what made it hard to see — the two paths disagreed and only the
+  // fallback was ever eyeballed.
+  //
+  // Metric: where the ink starts and stops inside the wordmark band.
+  // "agemo" with textBaseline 'top' leaves a large empty ascender gap above
+  // the x-height glyphs and almost none below the g descender, so upright
+  // and mirrored renders have opposite gap asymmetry. Centroid was tried
+  // first and rejected — it shifts only ~5% of the band, inside the noise
+  // the ripple already introduces.
+  const r = await page.evaluate(() => {
+    const canvas = document.querySelector('[data-mirror-canvas]');
+    const gl = canvas.getContext('webgl');
+    const w = canvas.width, h = canvas.height;
+    const px = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+
+    const size = Math.min(w * 0.19, h * 0.62);
+    const top = h * 0.06;
+    const lo = Math.floor(top), hi = Math.ceil(top + size);
+
+    const profile = (inkAt) => {
+      const rows = [];
+      for (let y = lo; y < hi; y++) rows.push(inkAt(y));
+      return rows;
+    };
+
+    // readPixels is bottom-up; convert to rows measured from the top so
+    // both profiles share one coordinate system.
+    const shader = profile((yTop) => {
+      const yGl = h - 1 - yTop;
+      let s = 0;
+      for (let x = 0; x < w; x += 2) s += px[(yGl * w + x) * 4 + 3];
+      return s;
+    });
+
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = `${size}px "Instrument Serif", Georgia, serif`;
+    ctx.letterSpacing = '0.06em';
+    ctx.fillText('agemo', w / 2, top);   // deliberately UPRIGHT: the reference
+    const ref = ctx.getImageData(0, 0, w, h).data;
+    const reference = profile((yTop) => {
+      let s = 0;
+      for (let x = 0; x < w; x += 2) s += ref[(yTop * w + x) * 4 + 3];
+      return s;
+    });
+
+    // Asymmetry = empty rows above the ink minus empty rows below it.
+    // Positive means the ink hugs the bottom of the band (upright).
+    const asymmetry = (rows) => {
+      const threshold = Math.max(...rows) * 0.06;
+      let first = -1, last = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i] > threshold) { if (first < 0) first = i; last = i; }
+      }
+      if (first < 0) return NaN;
+      return first - (rows.length - 1 - last);
+    };
+
+    return { shader: asymmetry(shader), reference: asymmetry(reference), band: size };
+  });
+
+  // Vacuity guard: if an upright render were vertically symmetric there
+  // would be nothing here to detect, and every assertion below would pass
+  // against any orientation.
+  expect(Math.abs(r.reference)).toBeGreaterThan(r.band * 0.08);
+  expect(r.reference).toBeGreaterThan(0);
+
+  // The rendered reflection must lean the other way.
+  expect(r.shader).toBeLessThan(-r.band * 0.05);
+});
