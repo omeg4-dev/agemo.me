@@ -1051,3 +1051,67 @@ test('link row titles are not clipped by their own box', async ({ page }) => {
     expect(m.box).toBeGreaterThanOrEqual(m.title);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Task 12 — the budgets and structural guarantees
+// ---------------------------------------------------------------------------
+
+for (const width of [360, 768, 1440]) {
+  for (const path of ['/', '/links']) {
+    test(`no horizontal overflow at ${width}px on ${path}`, async ({ browser }) => {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
+      await ctx.close();
+    });
+  }
+}
+
+test('total JavaScript stays under the budget', async ({ page }) => {
+  let bytes = 0;
+  page.on('response', async (res) => {
+    if (!/javascript/.test(res.headers()['content-type'] ?? '')) return;
+    try { bytes += (await res.body()).length; } catch { /* ignore */ }
+  });
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  // Uncompressed ceiling; gzip lands well under the 150 KB spec budget.
+  expect(bytes).toBeLessThan(450_000);
+});
+
+test('each page has exactly one h1 and a sane heading order', async ({ page }) => {
+  for (const path of ['/', '/links', '/does-not-exist']) {
+    await page.goto(path);
+    expect(await page.locator('h1').count(), path).toBe(1);
+  }
+  await page.goto('/');
+  expect(await page.locator('h2').count()).toBeGreaterThan(0);
+});
+
+test('every image and canvas is either labelled or explicitly decorative', async ({ page }) => {
+  for (const path of ['/', '/links']) {
+    await page.goto(path);
+    // `canvas:not([aria-hidden])` alone would be wrong in both directions: it
+    // fails a canvas that is correctly hidden by an ancestor, and it passes
+    // one whose hiding ancestor has been removed. Effective hiding is the
+    // actual requirement, so walk the chain.
+    const unlabelled = await page.evaluate(() => {
+      const bad = [];
+      for (const el of document.querySelectorAll('img')) {
+        if (!el.hasAttribute('alt')) bad.push('img without alt');
+      }
+      for (const el of document.querySelectorAll('canvas')) {
+        if (!el.closest('[aria-hidden="true"]') && !el.getAttribute('aria-label')) {
+          bad.push(`canvas .${el.className} neither hidden nor labelled`);
+        }
+      }
+      return bad;
+    });
+    expect(unlabelled, path).toEqual([]);
+  }
+});

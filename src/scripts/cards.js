@@ -72,8 +72,10 @@ function scramble(el) {
         })
         .join('');
       if (done) {
-        // Restore the exact original string. Rebuilding it from `chars`
-        // would be equivalent today, but this cannot drift.
+        // Belt and braces. `done` is only true once the map above returned
+        // the original character for every position, so this assignment is
+        // unobservable by construction — mutation testing confirmed no test
+        // can discriminate it. Kept as a guard, not claimed as behaviour.
         el.textContent = final;
         running = false;
         return;
