@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T22:27:50.149Z",
+  "generatedAt": "2026-09-06T09:24:38.171Z",
   "featured": [
     {
       "name": "mc-jukebox",
@@ -43,6 +43,15 @@
     }
   ],
   "rest": [
+    {
+      "name": "agemo.me",
+      "description": "",
+      "language": "JavaScript",
+      "stars": 0,
+      "pushedAt": "2026-09-05T21:05:31Z",
+      "url": "https://github.com/omeg4-dev/agemo.me",
+      "accent": "hsl(222 78% 62%)"
+    },
     {
       "name": "deadlyomega.lol",
       "description": "",
