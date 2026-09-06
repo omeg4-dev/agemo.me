@@ -38,5 +38,9 @@ pinned.
 | `npm run build:offline` | build from committed data only |
 | `npm run verify` | build + unit + e2e + Lighthouse — the gate |
 
+`PREVIEW_PORT=4500 npx playwright test` moves the e2e preview server off 4321.
+The config never reuses an existing server: a stale one serving an older
+`dist/` once made a whole mutation-testing round report false greens.
+
 Design: `docs/superpowers/specs/2026-09-05-agemo-me-phase1-design.md`
 Plan: `docs/superpowers/plans/2026-09-05-agemo-me-phase1.md`

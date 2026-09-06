@@ -210,11 +210,47 @@ export function initAmbient() {
                              // halves the battery cost of a always-on layer.
   const start = performance.now();
 
+  // Adaptive bail-out.
+  //
+  // The shader is trivial on a GPU and ruinous without one: on a software
+  // rasteriser each full-viewport frame costs ~160ms, so a 30fps loop simply
+  // owns the main thread. Measured on a 6x-throttled CPU this layer alone was
+  // 6.3s of main-thread work and 3.7s of total blocking time — the page stayed
+  // visually correct and stopped responding.
+  //
+  // Rather than guess at device class from hardwareConcurrency or a UA string,
+  // watch what the machine actually delivers: sample the first second of real
+  // frames and stop if the loop cannot hold a usable rate. Dropping
+  // data-active fades the canvas out and leaves the CSS aurora, which is a
+  // finished background in its own right — the same path already taken on
+  // context loss and on no-WebGL.
+  const PROBE_MS = 1000;
+  const MIN_FPS = 12;
+  let drawn = 0;
+  let probed = false;
+
+  function tooSlowFor(now) {
+    if (probed) return false;
+    const elapsed = now - start;
+    if (elapsed < PROBE_MS) return false;
+    probed = true;
+    return drawn / (elapsed / 1000) < MIN_FPS;
+  }
+
+  function retire() {
+    running = false;
+    cancelAnimationFrame(raf);
+    canvas.removeAttribute('data-active');
+  }
+
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
     if (now - last < FRAME) return;
     last = now;
+
+    if (tooSlowFor(now)) return retire();
+    drawn += 1;
 
     mouse.x += (target.x - mouse.x) * 0.045;
     mouse.y += (target.y - mouse.y) * 0.045;
@@ -233,9 +269,7 @@ export function initAmbient() {
   // rather than leaving a dead black canvas screen-blended over it.
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
-    running = false;
-    cancelAnimationFrame(raf);
-    canvas.removeAttribute('data-active');
+    retire();
   });
 
   // Stop burning frames on a tab nobody is looking at.

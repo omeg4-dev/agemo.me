@@ -173,14 +173,47 @@ export function initMirror() {
 
     const start = performance.now();
     let running = true;
+
+    // Frame cap and adaptive bail-out — same contract as ambient.js.
+    //
+    // This loop used to run uncapped at the display's refresh rate. On a GPU
+    // that is free; on a software rasteriser it measured 5.5s of main-thread
+    // work on a single page load, with individual frames over 150ms. The
+    // ripple is slow enough that 30fps is indistinguishable, and a machine
+    // that cannot hold even 12fps is told to stop and keep the CSS
+    // reflection, which is a correct rendering of the same thing.
+    const FRAME = 1000 / 30;
+    const PROBE_MS = 1000;
+    const MIN_FPS = 12;
+    let last = 0;
+    let drawn = 0;
+    let probed = false;
+
+    const retire = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      canvas.removeAttribute('data-active');
+    };
+
     const frame = () => {
       if (!running) return;
-      gl.uniform1f(u.time, (performance.now() - start) / 1000);
+      raf = requestAnimationFrame(frame);
+      const now = performance.now();
+      if (now - last < FRAME) return;
+      last = now;
+
+      const elapsed = now - start;
+      if (!probed && elapsed >= PROBE_MS) {
+        probed = true;
+        if (drawn / (elapsed / 1000) < MIN_FPS) return retire();
+      }
+      drawn += 1;
+
+      gl.uniform1f(u.time, elapsed / 1000);
       gl.uniform2f(u.mouse, mouse.x, mouse.y);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(frame);
     };
 
     resize();
@@ -189,13 +222,16 @@ export function initMirror() {
 
     // Stop burning GPU when the hero is off-screen or the tab is hidden.
     const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !running) { running = true; frame(); }
+      // A retired loop must stay retired: without the `probed` guard,
+      // scrolling the hero back into view would restart the very loop the
+      // probe just decided this machine cannot afford.
+      if (entry.isIntersecting && !running && !probed) { running = true; last = 0; frame(); }
       else if (!entry.isIntersecting) { running = false; cancelAnimationFrame(raf); }
     });
     io.observe(canvas);
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) { running = false; cancelAnimationFrame(raf); }
-      else if (!running) { running = true; frame(); }
+      else if (!running && !probed) { running = true; last = 0; frame(); }
     });
 
     // Recover from a lost WebGL context (GPU reset, driver crash, tab
@@ -203,9 +239,7 @@ export function initMirror() {
     // dead, blank canvas with data-active still set.
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
-      running = false;
-      cancelAnimationFrame(raf);
-      canvas.removeAttribute('data-active');
+      retire();
     });
 
     canvas.setAttribute('data-active', '');
