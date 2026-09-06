@@ -961,21 +961,35 @@ test('links are grouped by tag, one group per distinct tag', async ({ page }) =>
 });
 
 // The host line is the row's only statement of where the link actually goes,
-// and it lives in a clipped box that only the hover slide reveals. If the
-// slide stops working the destination becomes unknowable before clicking.
-test('hovering a link row slides its host into view', async ({ page }) => {
+// and it lives in a clipped box that only the hover reveals. The first version
+// of this test asserted that the stack's transform changed — which passed
+// against a build where hovering translated the CLIPPING box, taking its clip
+// along with it, so the whole line slid off and the host never appeared at
+// all. Assert what the reader needs: the host is inside the visible window and
+// the title is not.
+test('hovering a link row swaps its title for its host', async ({ page }) => {
   await page.goto('/links');
   const row = page.locator('.row').first();
-  const stack = row.locator('.row__stack');
 
-  const before = await stack.evaluate((el) => getComputedStyle(el).transform);
-  await row.hover();
-  const after = await stack.evaluate(async (el) => {
-    await new Promise((r) => setTimeout(r, 600));
-    return getComputedStyle(el).transform;
+  const read = () => row.locator('.row__stack').evaluate((el) => {
+    const clip = el.getBoundingClientRect();
+    const seen = (sel) => {
+      const r = el.querySelector(sel).getBoundingClientRect();
+      const overlap = Math.min(r.bottom, clip.bottom) - Math.max(r.top, clip.top);
+      return overlap / r.height;
+    };
+    return { title: seen('.row__title'), host: seen('.row__host') };
   });
-  expect(before).toBe('none');
-  expect(after).not.toBe('none');
+
+  const before = await read();
+  expect(before.title).toBeGreaterThan(0.9);
+  expect(before.host).toBeLessThan(0.1);
+
+  await row.hover();
+  await page.waitForTimeout(700);
+  const after = await read();
+  expect(after.host).toBeGreaterThan(0.9);
+  expect(after.title).toBeLessThan(0.1);
 });
 
 // ---------------------------------------------------------------------------

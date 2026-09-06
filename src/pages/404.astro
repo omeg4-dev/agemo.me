@@ -33,8 +33,11 @@ import Nav from '../components/Nav.astro';
 
   .lost__code {
     position: relative;
-    /* Room for the reflection hanging below the digits. */
-    margin-bottom: 0.5em;
+    /* Room for the reflection hanging below the digits. In the digits' own
+       scale, not the paragraph's: `em` here resolves against .lost__code's
+       inherited 1rem, so 0.5em reserved 8px under an 18rem reflection and the
+       title landed on top of it. Same unit-context trap as .row__stack. */
+    margin-bottom: clamp(2.6rem, 11vw, 7.5rem);
   }
 
   .lost__digits {
@@ -53,10 +56,13 @@ import Nav from '../components/Nav.astro';
   .lost__digits--echo {
     position: absolute;
     inset: 100% 0 auto 0;
+    /* No transform-origin. scaleY(-1) about `top` maps the box to [-h, 0] —
+       it renders ABOVE its own top edge, i.e. straight back over the thing it
+       is meant to reflect. The default 50% 50% origin flips in place, so the
+       reflection stays in the box, and the box is placed below. */
     transform: scaleY(-1);
-    transform-origin: top;
-    -webkit-mask-image: linear-gradient(to top, transparent 20%, #000);
-    mask-image: linear-gradient(to top, transparent 20%, #000);
+    -webkit-mask-image: linear-gradient(to top, transparent 55%, #000);
+    mask-image: linear-gradient(to top, transparent 55%, #000);
     animation: lost-ripple 5s var(--ease) infinite alternate;
   }
   @keyframes lost-ripple {

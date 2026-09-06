@@ -244,8 +244,11 @@ const band = Array.from({ length: 8 }, () => repo.name);
     /* Clear of the marquee band, which sits 0.7rem up from the slab's inside
        edge — at a flat 100% the reflection landed on top of it. */
     inset: calc(100% + 0.4rem) clamp(1.7rem, 4vw, 3.2rem) auto;
+    /* No transform-origin. scaleY(-1) about `top` maps the box to [-h, 0] —
+       it renders ABOVE its own top edge, i.e. straight back over the thing it
+       is meant to reflect. The default 50% 50% origin flips in place, so the
+       reflection stays in the box, and the box is placed below. */
     transform: scaleY(-1);
-    transform-origin: top;
     font-family: var(--font-mono);
     font-size: 0.78rem;
     color: var(--repo-accent);

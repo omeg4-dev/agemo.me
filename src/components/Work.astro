@@ -45,6 +45,9 @@ const count = String(pinned.length).padStart(2, '0');
        where the reflection hangs — inside the letterforms. */
     line-height: 1;
     color: var(--text);
+    /* Clearance for the reflection, which hangs a full line below the box and
+       would otherwise be sliced off by the first slab. */
+    margin-bottom: 0.55em;
   }
 
   /* The echo is the same word turned over beneath its own baseline — the
@@ -52,12 +55,12 @@ const count = String(pinned.length).padStart(2, '0');
      aria-hidden because the readable copy is .work__heading-ink above it. */
   .work__heading-echo {
     position: absolute;
-    /* The serif has no descenders in these words, so the line box bottom
-       sits ~0.2em below the baseline. Pull the reflection back up to meet
-       the baseline, which is where a waterline actually is. */
-    inset: calc(100% - 0.2em) auto auto 0;
+    inset: 100% auto auto 0;
+    /* No transform-origin. scaleY(-1) about `top` maps the box to [-h, 0] —
+       it renders ABOVE its own top edge, i.e. straight back over the thing it
+       is meant to reflect. The default 50% 50% origin flips in place, so the
+       reflection stays in the box, and the box is placed below. */
     transform: scaleY(-1);
-    transform-origin: top;
     color: color-mix(in oklab, var(--accent) 45%, transparent);
     -webkit-mask-image: linear-gradient(to top, transparent 15%, #000);
     mask-image: linear-gradient(to top, transparent 15%, #000);
