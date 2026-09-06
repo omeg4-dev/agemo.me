@@ -1,0 +1,77 @@
+---
+const { here } = Astro.props;
+
+const items = [
+  { label: 'work',  href: '/#work' },
+  { label: 'links', href: '/links' },
+];
+---
+<nav class="nav" aria-label="Primary">
+  <a class="nav__home" href="/" aria-current={here === 'home' ? 'page' : undefined}>agemo</a>
+  <ul class="nav__list">
+    {items.map((i) => (
+      <li>
+        <a
+          class="nav__link"
+          href={i.href}
+          aria-current={here === i.label ? 'page' : undefined}
+        >{i.label}</a>
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  /* Fixed, above the ambient layer (z-index 0) and the grain (z-index 2). */
+  .nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem var(--gutter);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: lowercase;
+    /* No background plate: the bar would cut a hard line across the ambient
+       field. A short gradient scrim keeps the labels legible over anything
+       that drifts underneath without drawing an edge. */
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--bg) 82%, transparent), transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  .nav__list { display: flex; gap: 1.1rem; list-style: none; margin: 0; padding: 0; }
+
+  .nav__home, .nav__link {
+    position: relative;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color var(--dur-1) var(--ease);
+  }
+  .nav__home { color: var(--text); letter-spacing: 0.3em; }
+  .nav__home:hover, .nav__link:hover, .nav__link:focus-visible { color: var(--accent); }
+
+  /* The underline is drawn from the centre out, so it reads as the link
+     surfacing rather than as a border being switched on. */
+  .nav__link::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -0.35em;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform var(--dur-2) var(--ease);
+  }
+  .nav__link:hover::after,
+  .nav__link:focus-visible::after,
+  .nav__link[aria-current='page']::after { transform: scaleX(1); }
+  .nav__link[aria-current='page'] { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav__link::after { transition: none; }
+  }
+</style>

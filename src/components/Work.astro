@@ -2,57 +2,86 @@
 import ProjectCard from './ProjectCard.astro';
 import repos from '../data/repos.json';
 
-const { featured, rest } = repos;
+const { pinned } = repos;
+const count = String(pinned.length).padStart(2, '0');
 ---
 <section class="work" id="work" aria-labelledby="work-heading">
-  <h2 class="work__heading" id="work-heading" data-reveal>Work</h2>
+  <header class="work__head" data-reveal>
+    <p class="work__eyebrow">{count} pinned · github/omeg4-dev</p>
+    <h2 class="work__heading" id="work-heading">
+      <span class="work__heading-ink">Work</span>
+      <span class="work__heading-echo" aria-hidden="true">Work</span>
+    </h2>
+  </header>
 
-  <div class="work__featured">
-    {featured.map((repo) => <ProjectCard repo={repo} featured />)}
-  </div>
-
-  <div class="work__rest">
-    {rest.map((repo) => <ProjectCard repo={repo} />)}
+  <div class="work__stack">
+    {pinned.map((repo, i) => <ProjectCard repo={repo} index={i} />)}
   </div>
 </section>
 
 <style>
   .work {
     display: grid;
-    gap: 2rem;
+    gap: clamp(2rem, 6vh, 4rem);
     max-width: 1180px;
     margin-inline: auto;
     padding: clamp(3rem, 10vh, 7rem) var(--gutter);
   }
 
+  .work__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--accent) 70%, var(--muted));
+  }
+
   .work__heading {
+    position: relative;
     font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-size: clamp(3rem, 12vw, 8rem);
     font-weight: 400;
-    color: var(--muted);
+    /* 1, not 0.9: a box shorter than its own glyphs puts `top: 100%` —
+       where the reflection hangs — inside the letterforms. */
+    line-height: 1;
+    color: var(--text);
   }
 
-  /* Featured repos get asymmetric, deliberately non-uniform treatment. */
-  .work__featured {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 1fr;
+  /* The echo is the same word turned over beneath its own baseline — the
+     waterline motif applied to a heading rather than to the hero mark. It is
+     aria-hidden because the readable copy is .work__heading-ink above it. */
+  .work__heading-echo {
+    position: absolute;
+    /* The serif has no descenders in these words, so the line box bottom
+       sits ~0.2em below the baseline. Pull the reflection back up to meet
+       the baseline, which is where a waterline actually is. */
+    inset: calc(100% - 0.2em) auto auto 0;
+    transform: scaleY(-1);
+    transform-origin: top;
+    color: color-mix(in oklab, var(--accent) 45%, transparent);
+    -webkit-mask-image: linear-gradient(to top, transparent 15%, #000);
+    mask-image: linear-gradient(to top, transparent 15%, #000);
+    pointer-events: none;
+    animation: heading-ripple 6.5s var(--ease) infinite alternate;
   }
-  @media (min-width: 860px) {
-    .work__featured { grid-template-columns: 1.35fr 1fr; }
-    /* :global() is required here: ProjectCard.astro's <article> carries a
-       different Astro scoped-CSS hash than Work.astro, so a plain scoped
-       `:nth-child(3)` selector compiles to [data-astro-cid-work]:nth-child(3)
-       and never matches a child stamped with [data-astro-cid-projectcard].
-       Confirmed empirically — without :global() every card's computed
-       grid-column was "auto", i.e. the "asymmetric, deliberately non-uniform
-       treatment" the spec calls for was silently inert. */
-    .work__featured > :global(:nth-child(3)) { grid-column: 1 / -1; }
+  /* Only the reflection wobbles. The real word stays perfectly still, which
+     is what makes the wobble read as water rather than as a shaky heading. */
+  @keyframes heading-ripple {
+    from { transform: scaleY(-1) skewX(0deg)  translateY(0); opacity: 0.75; }
+    to   { transform: scaleY(-1) skewX(2.5deg) translateY(3px); opacity: 1; }
   }
 
-  .work__rest {
+  .work__stack {
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: clamp(1.5rem, 5vh, 3.5rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .work__heading-echo { animation: none; }
   }
 </style>
+
+<script>
+  import { initCards } from '../scripts/cards.js';
+  initCards();
+</script>

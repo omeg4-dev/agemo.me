@@ -1,16 +1,24 @@
 ---
 import Base from '../layouts/Base.astro';
 import Ambient from '../components/Ambient.astro';
+import Nav from '../components/Nav.astro';
 import Hero from '../components/Hero.astro';
 import IdentityStrip from '../components/IdentityStrip.astro';
 import Work from '../components/Work.astro';
+import Machine from '../components/Machine.astro';
+import Reach from '../components/Reach.astro';
+import Footer from '../components/Footer.astro';
 import site from '../config/site.mjs';
 ---
 <Base title="agemo" description={site.tagline}>
   <Ambient />
+  <Nav here="home" />
   <Hero />
   <main>
     <IdentityStrip />
     <Work />
+    <Machine />
+    <Reach />
   </main>
+  <Footer />
 </Base>

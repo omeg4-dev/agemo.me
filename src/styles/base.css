@@ -28,8 +28,8 @@ a:focus-visible, button:focus-visible {
 
 /*
  * [data-reveal] elements are visible-by-default (no-JS baseline). Only once
- * html.js lands (see Base.astro's inline bootstrap, set synchronously before
- * <body> paints) do they get an invisible starting state to animate out of
+ * html.js lands (set by initScroll() in scroll.js — see the note in
+ * Base.astro for why it is NOT an inline head bootstrap) do they get an invisible starting state to animate out of
  * via scroll.js's IntersectionObserver. This ordering — visible by default,
  * JS opts INTO the hidden state — is what keeps content readable with
  * JavaScript disabled; the inverse (hidden by default, JS opts into visible)
@@ -63,7 +63,12 @@ html.js [data-reveal][data-revealed] { opacity: 1; transform: none; }
  * Both children of <body> are named here rather than using a blanket
  * `body > *` so that adding an element later is a deliberate act.
  */
-.hero-stage, main { position: relative; z-index: 1; }
+/* Everything that carries content is lifted above the fixed ambient layer
+   (z-index 0). The footer was left off this list at first and painted
+   BEHIND the background: its text was invisible on the live page while
+   every test still passed, because visibility here is a stacking-order
+   question and nothing was asserting paint order. */
+.hero-stage, main, footer { position: relative; z-index: 1; }
 
 /* --depth is 0 at the top of the document and 1 at the bottom. scroll.js
  * owns it; the default here keeps every consumer valid with no JS. */

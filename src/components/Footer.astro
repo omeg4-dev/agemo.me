@@ -1,0 +1,81 @@
+---
+const sha = __BUILD_SHA__;
+const built = __BUILD_TIME__;
+---
+<footer class="foot">
+  <!-- The arrow is an inline SVG, never the literal ⟷ (U+27F7): neither
+       Instrument Serif nor IBM Plex Mono carries that codepoint and it is
+       deliberately excluded from the subset, so a text glyph renders as tofu.
+       Markup taken verbatim from task-4-addendum.md §3. -->
+  <p class="foot__palindrome" aria-hidden="true">
+    <span>AGEMO</span>
+    <svg class="foot__arrow" aria-hidden="true" focusable="false" viewBox="0 0 48 12">
+      <path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"
+            stroke-linejoin="round" d="M6 6h36M6 6l4.5-4M6 6l4.5 4M42 6l-4.5-4M42 6l-4.5 4"/>
+    </svg>
+    <span>OMEGA</span>
+  </p>
+
+  <p class="foot__meta">
+    built <time datetime={built}>{built.slice(0, 10)}</time>
+    from <code data-build-sha>{sha}</code>
+  </p>
+</footer>
+
+<style>
+  .foot {
+    display: grid;
+    gap: 0.6rem;
+    justify-items: center;
+    padding: clamp(3rem, 8vh, 5rem) var(--gutter);
+    border-top: 1px solid color-mix(in oklab, var(--muted) 18%, transparent);
+    text-align: center;
+  }
+
+  .foot__palindrome {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 3vw, 1.9rem);
+    letter-spacing: 0.14em;
+  }
+  /* The gradient sits on the two words, not on the flex container — the SVG
+     between them takes its colour from `color`, and background-clip:text on
+     the container would make that `transparent` too. */
+  .foot__palindrome span {
+    background: linear-gradient(90deg, var(--accent), var(--text), var(--accent-2));
+    background-size: 240% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: palindrome-slide 9s var(--ease) infinite alternate;
+  }
+  /* The two halves run the gradient in opposite directions, so the light
+     crosses the arrow and comes back — the palindrome, read as motion. */
+  .foot__palindrome span:last-child { animation-direction: alternate-reverse; }
+  @keyframes palindrome-slide {
+    from { background-position: 0% 0; }
+    to   { background-position: 100% 0; }
+  }
+
+  .foot__arrow {
+    width: 2.5em;
+    height: 0.7em;
+    flex: none;
+    color: var(--accent);
+    animation: arrow-swing 5.5s var(--ease) infinite alternate;
+  }
+  @keyframes arrow-swing {
+    from { transform: translateX(-3px); opacity: 0.55; }
+    to   { transform: translateX(3px);  opacity: 1; }
+  }
+
+  .foot__meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+  .foot__meta code { color: var(--accent-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .foot__palindrome span, .foot__arrow { animation: none; }
+    .foot__arrow { opacity: 1; }
+  }
+</style>

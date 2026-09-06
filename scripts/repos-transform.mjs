@@ -35,29 +35,30 @@ function normalise(r) {
     name: r.name,
     description: r.description ?? '',
     language: r.language ?? '',
-    stars: r.stargazers_count ?? 0,
     pushedAt: r.pushed_at,
     url: r.html_url,
     accent: accentFor(r.name),
   };
 }
 
-export function selectRepos(raw, config) {
+/**
+ * The Work section shows GitHub-pinned repos only.
+ *
+ * `pinnedNames` is the live pin list when the build could reach the GraphQL
+ * API, and `config.pinned` otherwise. Either way the deny-list still applies
+ * and the result is ordered by `pinnedNames`, not by the REST payload — a
+ * repo's position on the page is a deliberate choice, not an accident of
+ * push time.
+ */
+export function selectPinned(raw, config, pinnedNames) {
   const deny = new Set(config.deny ?? []);
-  const eligible = raw
-    .filter((r) => !r.fork && !r.archived && !r.private && !deny.has(r.name))
-    .map(normalise);
+  const order = pinnedNames?.length ? pinnedNames : (config.pinned ?? []);
 
-  const byName = new Map(eligible.map((r) => [r.name, r]));
+  const byName = new Map(
+    raw
+      .filter((r) => !r.archived && !r.private && !deny.has(r.name))
+      .map((r) => [r.name, normalise(r)]),
+  );
 
-  const featured = (config.featured ?? [])
-    .map((n) => byName.get(n))
-    .filter(Boolean);
-
-  const featuredNames = new Set(featured.map((r) => r.name));
-  const rest = eligible
-    .filter((r) => !featuredNames.has(r.name))
-    .sort((a, b) => new Date(b.pushedAt) - new Date(a.pushedAt));
-
-  return { featured, rest };
+  return order.map((n) => byName.get(n)).filter(Boolean);
 }

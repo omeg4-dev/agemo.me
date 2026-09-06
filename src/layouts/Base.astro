@@ -3,6 +3,10 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 
 const { title, description } = Astro.props;
+
+// Astro.site is the origin only, so using it directly gave every page the
+// same canonical URL — /links and /404 both claiming to be the home page.
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
 ---
 <!doctype html>
 <html lang="en">
@@ -34,7 +38,7 @@ const { title, description } = Astro.props;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <link rel="canonical" href={Astro.site} />
+    <link rel="canonical" href={canonical} />
     <link rel="preload" href="/fonts/instrument-serif.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/plex-mono.woff2" as="font" type="font/woff2" crossorigin />
   </head>

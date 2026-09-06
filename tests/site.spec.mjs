@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import site from '../src/config/site.mjs';
+import links from '../src/data/links.json' with { type: 'json' };
 
 test('page loads with the correct title', async ({ page }) => {
   await page.goto('/');
@@ -340,33 +341,49 @@ test('tagline is visible without JavaScript on a desktop viewport', async ({ bro
 // scroll.js's initScroll() add the `js` class itself as its first act, so
 // the hidden starting state is only ever reachable via the same script
 // responsible for reversing it.
-// scroll.js is small enough that Vite inlines its whole bundle straight
-// into an inline `<script type="module">` in the built HTML rather than
-// emitting it as a separate request — confirmed by inspecting dist/index.html
-// (only mirror.js, the large one, gets its own `src=`). That means a naive
-// `page.route('**/*scroll*.js', abort)` matches nothing and silently does
-// not exercise this path at all (a route that never fires is its own kind
-// of vacuous test). Instead, rewrite the served HTML to blow up the
-// specific inline script that contains scroll.js's code (identified by the
-// unique `--dive` custom property it sets), simulating a thrown error
-// partway through module evaluation — before initScroll()'s first line
-// (the classList.add('js') call) ever runs.
-async function breakScrollScript(page) {
-  await page.route('**/', async (route) => {
+// Where scroll.js ends up in the build is not stable. Vite inlines a small
+// module straight into an inline `<script type="module">`, but emits a
+// separate `src=` chunk once it grows past its threshold — and it has now
+// crossed that line in both directions as the page gained sections. A helper
+// that handles only one of the two shapes silently stops intercepting
+// anything the moment the other one applies, which is a route that never
+// fires: a vacuous test that still reports green.
+//
+// So handle both, and return a state object the caller must assert on, so a
+// helper that matched nothing can never pass unnoticed. scroll.js is
+// identified by the `--dive` custom property, which nothing else sets.
+function breakScrollScript(page) {
+  const state = { broken: false };
+
+  page.route('**/*.js', async (route) => {
+    const res = await route.fetch();
+    const body = await res.text();
+    if (!body.includes('--dive')) return route.fulfill({ response: res, body });
+    state.broken = true;
+    await route.fulfill({
+      response: res,
+      body: 'throw new Error("simulated scroll.js failure");',
+    });
+  });
+
+  page.route('**/', async (route) => {
     const res = await route.fetch();
     const body = await res.text();
     const broken = body.replace(
       /<script type="module">((?:(?!<\/script>)[\s\S])*--dive(?:(?!<\/script>)[\s\S])*)<\/script>/,
       '<script type="module">throw new Error("simulated scroll.js failure");</script>',
     );
-    expect(broken).not.toBe(body); // fail loud if the script was never found/replaced
+    if (broken !== body) state.broken = true;
     await route.fulfill({ response: res, body: broken });
   });
+
+  return state;
 }
 
 test('identity stays visible when scroll.js fails to load', async ({ page }) => {
-  await breakScrollScript(page);
+  const state = breakScrollScript(page);
   await page.goto('/');
+  expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
   const line = page.locator('.identity__line');
   await expect(line).toBeVisible();
   const info = await line.evaluate((el) => ({
@@ -388,8 +405,9 @@ test('identity stays visible when scroll.js fails to load', async ({ page }) => 
 // there is no partial rendering at all, the whole section just never
 // appears.
 test('[data-reveal] sections stay visible when scroll.js fails to load', async ({ page }) => {
-  await breakScrollScript(page);
+  const state = breakScrollScript(page);
   await page.goto('/');
+  expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
   const identity = page.locator('.identity');
   await expect(identity).toBeVisible();
   const opacity = await identity.evaluate((el) => getComputedStyle(el).opacity);
@@ -460,8 +478,10 @@ test('identity section reveals immediately when IntersectionObserver is unavaila
 test('the work grid renders enough cards with real data', async ({ page }) => {
   await page.goto('/');
   const cards = page.locator('[data-project]');
-  // Floor is 6, not 8: the deny-list may legitimately shrink the set — spec §7.
-  expect(await cards.count()).toBeGreaterThanOrEqual(6);
+  // Exactly the pins, no floor: "at least N" was the right shape when the grid
+  // showed the whole account, but it cannot catch an over-wide selection now
+  // that the set is meant to be closed.
+  expect(await cards.count()).toBe(site.pinned.length);
 
   for (const name of await page.locator('[data-project-name]').allTextContents()) {
     expect(name.trim()).not.toBe('');
@@ -471,10 +491,13 @@ test('the work grid renders enough cards with real data', async ({ page }) => {
   }
 });
 
-test('every configured featured repo appears', async ({ page }) => {
+test('the work section shows the pinned repos and nothing else', async ({ page }) => {
   await page.goto('/');
   const names = (await page.locator('[data-project-name]').allTextContents()).map((n) => n.trim());
-  for (const f of site.featured) expect(names).toContain(f);
+  for (const f of site.pinned) expect(names).toContain(f);
+  // The point of the change is exclusion, not inclusion: an "every pinned repo
+  // appears" assertion alone still passes with the whole account rendered.
+  expect(names.sort()).toEqual([...site.pinned].sort());
 });
 
 test('deny-listed repos never appear', async ({ page }) => {
@@ -488,19 +511,6 @@ test('project links open safely in a new tab', async ({ page }) => {
   const link = page.locator('[data-project] a').first();
   await expect(link).toHaveAttribute('rel', /noopener/);
   await expect(link).toHaveAttribute('target', '_blank');
-});
-
-// Defect guard (task-4-addendum.md §2): the star must be an <svg>, never a
-// text node containing the literal ★ (U+2605) glyph — neither font face in
-// the subset carries that codepoint, so a literal glyph renders as tofu.
-test('star count is rendered as SVG, never the literal glyph', async ({ page }) => {
-  await page.goto('/');
-  const stars = page.locator('.card__stars');
-  expect(await stars.count()).toBeGreaterThan(0);
-  const first = stars.first();
-  await expect(first.locator('svg')).toHaveCount(1);
-  const text = await first.innerText();
-  expect(text).not.toContain('★');
 });
 
 // Whole-page sweep for every codepoint the font subset deliberately excludes
@@ -812,4 +822,232 @@ test('the hero reflection is actually mirrored, not an upright copy', async ({ p
 
   // The rendered reflection must lean the other way.
   expect(r.shader).toBeLessThan(-r.band * 0.05);
+});
+
+
+// ---------------------------------------------------------------------------
+// Work slabs — the 3D tilt, the pinned-only grid, and the specificity trap
+// ---------------------------------------------------------------------------
+
+// base.css's reveal rules are `html.js [data-reveal] { transform: ... }` and
+// `[data-revealed] { transform: none }`, both of which outrank a plain `.slab`
+// class selector. Putting the reveal and the tilt on one element therefore
+// makes the tilt a silent no-op — the exact cross-cutting-CSS failure class
+// this project has hit three times. Assert the split holds by reading the
+// computed transform back, not by reading the source.
+test('the slab tilt is not clobbered by the reveal transform', async ({ page }) => {
+  await page.goto('/');
+  const slab = page.locator('[data-slab]').first();
+  await slab.scrollIntoViewIfNeeded();
+  await expect(slab.locator('..')).toHaveAttribute('data-revealed', '');
+
+  const before = await slab.evaluate((el) => getComputedStyle(el).transform);
+  await slab.hover({ position: { x: 40, y: 40 } });
+  const after = await slab.evaluate(async (el) => {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return getComputedStyle(el).transform;
+  });
+
+  // A 3D tilt resolves to a matrix3d; "none" means the reveal rule won.
+  expect(after).not.toBe('none');
+  expect(after).not.toBe(before);
+  expect(after).toContain('matrix3d');
+});
+
+test('the repo name decodes to its real value after a hover scramble', async ({ page }) => {
+  await page.goto('/');
+  const name = page.locator('[data-scramble]').first();
+  const final = (await name.textContent()).trim();
+  await name.hover();
+  // The scramble replaces the text with noise mid-run; what matters is that
+  // it always lands back on the exact original string.
+  await expect(name).toHaveText(final, { timeout: 3000 });
+});
+
+test('every slab links to its repo safely in a new tab', async ({ page }) => {
+  await page.goto('/');
+  const links = page.locator('[data-slab] a.slab__hit');
+  expect(await links.count()).toBe(site.pinned.length);
+  for (const href of await links.evaluateAll((els) => els.map((e) => e.href))) {
+    expect(href).toContain('github.com/');
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Task 10 — the machine, reach, footer
+// ---------------------------------------------------------------------------
+
+test('the uses block lists the machine', async ({ page }) => {
+  await page.goto('/');
+  const text = await page.locator('[data-uses]').innerText();
+  for (const { v } of site.uses) expect(text).toContain(v);
+});
+
+test('contact offers Discord and GitHub only', async ({ page }) => {
+  await page.goto('/');
+  const hrefs = await page.locator('[data-reach] a').evaluateAll((els) => els.map((e) => e.href));
+  expect(hrefs.some((h) => h.includes('discord.com'))).toBe(true);
+  expect(hrefs.some((h) => h.includes('github.com'))).toBe(true);
+  expect(hrefs.some((h) => h.startsWith('mailto:'))).toBe(false);
+  await expect(page.locator('form')).toHaveCount(0);
+});
+
+test('the footer carries a real build SHA', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-build-sha]')).toHaveText(/^[0-9a-f]{7,40}$|^local$/);
+});
+
+test('no real name, address or contact form appears on any page', async ({ page }) => {
+  for (const path of ['/', '/links', '/does-not-exist']) {
+    await page.goto(path);
+    const html = (await page.content()).toLowerCase();
+    for (const forbidden of ['tuta.io', 'mailto:']) expect(html, path).not.toContain(forbidden);
+  }
+});
+
+// The palindrome arrow must be an <svg>, never the literal ⟷ (U+27F7), which
+// no face in the subset carries. Same defect class as the old star guard.
+test('the footer palindrome renders its arrow as SVG', async ({ page }) => {
+  await page.goto('/');
+  const p = page.locator('.foot__palindrome');
+  await expect(p.locator('svg')).toHaveCount(1);
+  const text = await p.innerText();
+  expect(text).toContain('AGEMO');
+  expect(text).toContain('OMEGA');
+  expect(text).not.toContain('\u27F7');
+});
+
+// ---------------------------------------------------------------------------
+// Task 11 — the 404
+// ---------------------------------------------------------------------------
+
+test('404 renders and offers a way back', async ({ page }) => {
+  const res = await page.goto('/does-not-exist');
+  expect(res.status()).toBe(404);
+  await expect(page.locator('[data-404]')).toBeVisible();
+  await expect(page.locator('[data-404] a[href="/"]')).toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
+// The links page
+// ---------------------------------------------------------------------------
+
+test('every link in links.json is rendered, with a working href', async ({ page }) => {
+  await page.goto('/links');
+  const rows = page.locator('.row__hit');
+  expect(await rows.count()).toBe(links.links.length);
+
+  const hrefs = await rows.evaluateAll((els) => els.map((e) => e.getAttribute('href')));
+  for (const link of links.links) expect(hrefs).toContain(link.url);
+
+  const titles = (await page.locator('.row__title').allTextContents()).map((t) => t.trim());
+  for (const link of links.links) expect(titles).toContain(link.title);
+});
+
+test('link rows open in a new tab without leaking the referrer window', async ({ page }) => {
+  await page.goto('/links');
+  for (const row of await page.locator('.row__hit').all()) {
+    await expect(row).toHaveAttribute('target', '_blank');
+    await expect(row).toHaveAttribute('rel', /noopener/);
+  }
+});
+
+test('links are grouped by tag, one group per distinct tag', async ({ page }) => {
+  await page.goto('/links');
+  const expected = [...new Set(links.links.map((l) => l.tag || 'misc'))];
+  await expect(page.locator('[data-link-group]')).toHaveCount(expected.length);
+  const tags = (await page.locator('.group__tag').allTextContents()).map((t) => t.trim());
+  expect(tags).toEqual(expected);
+});
+
+// The host line is the row's only statement of where the link actually goes,
+// and it lives in a clipped box that only the hover slide reveals. If the
+// slide stops working the destination becomes unknowable before clicking.
+test('hovering a link row slides its host into view', async ({ page }) => {
+  await page.goto('/links');
+  const row = page.locator('.row').first();
+  const stack = row.locator('.row__stack');
+
+  const before = await stack.evaluate((el) => getComputedStyle(el).transform);
+  await row.hover();
+  const after = await stack.evaluate(async (el) => {
+    await new Promise((r) => setTimeout(r, 600));
+    return getComputedStyle(el).transform;
+  });
+  expect(before).toBe('none');
+  expect(after).not.toBe('none');
+});
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+
+test('the nav reaches the links page and comes back', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('.nav__link', { hasText: 'links' }).click();
+  await expect(page).toHaveURL(/\/links\/?$/);
+  await expect(page.locator('.vault__title')).toBeVisible();
+
+  await page.locator('.nav__home').click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('[data-hero]')).toBeVisible();
+});
+
+test('each page declares its own canonical URL', async ({ page }) => {
+  const seen = [];
+  for (const path of ['/', '/links']) {
+    await page.goto(path);
+    seen.push(await page.locator('link[rel=canonical]').getAttribute('href'));
+  }
+  expect(seen[0]).toBe('https://agemo.me/');
+  // Astro's static build emits /links/index.html, so the canonical carries the
+  // directory's trailing slash. Asserting the unslashed form would be
+  // asserting a URL the site does not serve.
+  expect(seen[1]).toBe('https://agemo.me/links/');
+  expect(new Set(seen).size).toBe(2);
+});
+
+// Regression: the footer was omitted from base.css's `position: relative;
+// z-index: 1` list and painted BEHIND the fixed ambient layer — its text was
+// invisible on the real page while the whole suite stayed green, because
+// nothing asserted paint order. elementFromPoint cannot catch this: the
+// ambient sets pointer-events:none, so hit-testing reports the footer as the
+// top element whether or not it is actually painted above the background.
+// Assert the stacking contract itself instead.
+test('every content region is stacked above the ambient background', async ({ page }) => {
+  for (const [path, regions] of [
+    ['/', ['.hero-stage', 'main', 'footer', '.nav']],
+    ['/links', ['main', 'footer', '.nav']],
+  ]) {
+    await page.goto(path);
+    const ambientZ = Number(
+      await page.locator('.ambient').evaluate((el) => getComputedStyle(el).zIndex),
+    );
+    for (const sel of regions) {
+      const s = await page.locator(sel).first().evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { position: cs.position, z: cs.zIndex };
+      });
+      // z-index is ignored outright on a statically positioned box, so the
+      // position check is load-bearing, not decoration.
+      expect(s.position, `${path} ${sel} position`).not.toBe('static');
+      expect(Number(s.z), `${path} ${sel} z-index`).toBeGreaterThan(ambientZ);
+    }
+  }
+});
+
+// Regression: .row__stack was sized in `em`, which resolves against the
+// stack's own inherited font-size rather than the clamped display size of the
+// title inside it — a box a third the height of its content, guillotining
+// every link title. Measure the box against the text it is supposed to hold.
+test('link row titles are not clipped by their own box', async ({ page }) => {
+  await page.goto('/links');
+  for (const row of await page.locator('.row').all()) {
+    const m = await row.locator('.row__stack').evaluate((el) => ({
+      box: el.clientHeight,
+      title: el.querySelector('.row__title').getBoundingClientRect().height,
+    }));
+    expect(m.title).toBeGreaterThan(0);
+    expect(m.box).toBeGreaterThanOrEqual(m.title);
+  }
 });

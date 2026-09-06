@@ -1,0 +1,84 @@
+---
+import Base from '../layouts/Base.astro';
+import Ambient from '../components/Ambient.astro';
+import Nav from '../components/Nav.astro';
+---
+<Base title="404 — agemo" description="Nothing on this side of the mirror.">
+  <Ambient />
+  <Nav />
+
+  <section class="lost" data-404>
+    <p class="lost__code" aria-hidden="true">
+      <span class="lost__digits">404</span>
+      <span class="lost__digits lost__digits--echo" aria-hidden="true">404</span>
+    </p>
+    <h1 class="lost__title">Nothing on this side of the mirror.</h1>
+    <p class="lost__body">The page you wanted is reflected somewhere that does not exist.</p>
+    <a class="lost__back" href="/">← back through</a>
+  </section>
+</Base>
+
+<style>
+  .lost {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1rem;
+    place-content: center;
+    justify-items: center;
+    min-height: 100svh;
+    padding: var(--gutter);
+    text-align: center;
+  }
+
+  .lost__code {
+    position: relative;
+    /* Room for the reflection hanging below the digits. */
+    margin-bottom: 0.5em;
+  }
+
+  .lost__digits {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(6rem, 26vw, 18rem);
+    line-height: 0.85;
+    background: linear-gradient(180deg, var(--surface) 40%, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* The digits are their own reflection — the site's one idea, applied to the
+     one page that is genuinely on the wrong side of the waterline. */
+  .lost__digits--echo {
+    position: absolute;
+    inset: 100% 0 auto 0;
+    transform: scaleY(-1);
+    transform-origin: top;
+    -webkit-mask-image: linear-gradient(to top, transparent 20%, #000);
+    mask-image: linear-gradient(to top, transparent 20%, #000);
+    animation: lost-ripple 5s var(--ease) infinite alternate;
+  }
+  @keyframes lost-ripple {
+    from { transform: scaleY(-1) skewX(-3deg) translateY(0);   opacity: 0.55; }
+    to   { transform: scaleY(-1) skewX(3deg)  translateY(4px); opacity: 0.95; }
+  }
+
+  .lost__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.3rem, 3.5vw, 2.2rem);
+  }
+  .lost__body { color: var(--muted); font-size: 0.85rem; max-width: 40ch; }
+  .lost__back {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    margin-top: 1rem;
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lost__digits--echo { animation: none; }
+  }
+</style>

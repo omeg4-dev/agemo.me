@@ -1,0 +1,17 @@
+{
+  "howToAdd": "Append an object to \"links\". Required: title, url. Optional: tag (rows are grouped by it, default \"misc\") and note (one line, shown under the title). Order inside a tag is the order here. Commit and push — the site rebuilds itself.",
+  "links": [
+    {
+      "title": "FMHY",
+      "url": "https://fmhy.net",
+      "tag": "resources",
+      "note": "The free-media megathread. Start here before paying for anything."
+    },
+    {
+      "title": "feet pics",
+      "url": "https://lambacher.netlify.app",
+      "tag": "misc",
+      "note": "Exactly what it says."
+    }
+  ]
+}

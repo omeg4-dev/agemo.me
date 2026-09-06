@@ -1,0 +1,117 @@
+---
+import site from '../config/site.mjs';
+---
+<section class="machine" aria-labelledby="machine-heading" data-reveal>
+  <h2 class="machine__heading" id="machine-heading">The machine</h2>
+
+  <div class="machine__body">
+    <!-- Block-drawing characters U+2580-2588 only. Those ARE in the font
+         subset (task-4-addendum §4); Ω, ★ and ⟷ are not and ship as SVG. -->
+    <pre class="machine__mark" aria-hidden="true">{`   ▄▄▄▄▄
+ ▄█████████▄
+███▀     ▀███
+███       ███
+███       ███
+▀██▄     ▄██▀
+ ▀█▀     ▀█▀
+▄███▄   ▄███▄`}</pre>
+
+    <dl class="machine__list" data-uses>
+      {site.uses.map(({ k, v }, i) => (
+        <div class="machine__row" style={`--i: ${i}`}>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+
+  <p class="machine__steal">
+    <a href={site.links.dotfiles} target="_blank" rel="noopener noreferrer">steal my dotfiles →</a>
+  </p>
+</section>
+
+<style>
+  .machine {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding: clamp(3rem, 10vh, 7rem) var(--gutter);
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .machine__heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .machine__body {
+    display: grid;
+    gap: clamp(1.5rem, 5vw, 4rem);
+    align-items: center;
+    grid-template-columns: 1fr;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    background: var(--surface);
+    border: 1px solid color-mix(in oklab, var(--muted) 22%, transparent);
+    border-radius: 14px;
+  }
+  @media (min-width: 720px) { .machine__body { grid-template-columns: auto 1fr; } }
+
+  .machine__mark {
+    margin: 0;
+    font-size: clamp(0.5rem, 1.4vw, 0.75rem);
+    line-height: 1.05;
+    color: var(--accent);
+    /* The mark pulses like a machine that is on rather than a printed logo.
+       drop-shadow rather than text-shadow so the glow follows the glyph
+       edges of the block characters instead of their full em boxes. */
+    animation: machine-pulse 4.5s var(--ease) infinite alternate;
+  }
+  @keyframes machine-pulse {
+    from { opacity: 0.75; filter: drop-shadow(0 0 1px color-mix(in oklab, var(--accent) 30%, transparent)); }
+    to   { opacity: 1;    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--accent) 45%, transparent)); }
+  }
+
+  .machine__list { display: grid; gap: 0.5rem; margin: 0; }
+  .machine__row {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    position: relative;
+  }
+  .machine__row dt { color: var(--accent-2); }
+  .machine__row dd { margin: 0; color: var(--text); }
+
+  /* A scanline sweeping the list, one row at a time. The delay is derived
+     from --i so the rows light in reading order regardless of how many
+     entries site.uses grows to. */
+  .machine__row::after {
+    content: '';
+    position: absolute;
+    inset: -0.15rem -0.4rem;
+    border-radius: 5px;
+    background: linear-gradient(90deg,
+      transparent,
+      color-mix(in oklab, var(--accent) 12%, transparent),
+      transparent);
+    pointer-events: none;
+    opacity: 0;
+    animation: row-scan 6s var(--ease) infinite;
+    animation-delay: calc(var(--i, 0) * 320ms);
+  }
+  @keyframes row-scan {
+    0%, 70%, 100% { opacity: 0; }
+    82%           { opacity: 1; }
+  }
+
+  .machine__steal { font-family: var(--font-mono); font-size: 0.82rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .machine__mark { animation: none; opacity: 0.85; }
+    .machine__row::after { display: none; }
+  }
+</style>

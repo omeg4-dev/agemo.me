@@ -1,24 +1,56 @@
 import { writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import site from '../src/config/site.mjs';
-import { selectRepos } from './repos-transform.mjs';
+import { selectPinned } from './repos-transform.mjs';
 
 const OUT = fileURLToPath(new URL('../src/data/repos.json', import.meta.url));
-const API = `https://api.github.com/users/${site.owner}/repos?per_page=100&type=owner`;
+const REST = `https://api.github.com/users/${site.owner}/repos?per_page=100&type=owner`;
 
 const headers = { accept: 'application/vnd.github+json', 'user-agent': 'agemo.me-build' };
 if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 
+/**
+ * The live pin list. GraphQL is the only API that exposes pins, and it
+ * refuses unauthenticated requests — so without a token this returns null
+ * and selectPinned falls back to site.pinned. That fallback is the reason
+ * `npm run build` still produces the right page on a laptop with no
+ * GITHUB_TOKEN exported.
+ */
+async function fetchPinnedNames() {
+  if (!process.env.GITHUB_TOKEN) return null;
+  const query = `{ user(login: "${site.owner}") {
+    pinnedItems(first: 10, types: REPOSITORY) { nodes { ... on Repository { name } } }
+  } }`;
+  try {
+    const res = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`GraphQL returned ${res.status}`);
+    const body = await res.json();
+    const names = body?.data?.user?.pinnedItems?.nodes?.map((n) => n?.name).filter(Boolean);
+    return names?.length ? names : null;
+  } catch (err) {
+    console.warn(`warning: pin list unavailable (${err.message}) — using site.pinned`);
+    return null;
+  }
+}
+
 try {
-  const res = await fetch(API, { headers, signal: AbortSignal.timeout(15_000) });
+  const [res, pinnedNames] = await Promise.all([
+    fetch(REST, { headers, signal: AbortSignal.timeout(15_000) }),
+    fetchPinnedNames(),
+  ]);
   if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
 
-  const { featured, rest } = selectRepos(await res.json(), site);
-  if (featured.length + rest.length === 0) throw new Error('API returned zero eligible repos');
+  const pinned = selectPinned(await res.json(), site, pinnedNames);
+  if (pinned.length === 0) throw new Error('no pinned repos survived selection');
 
-  // Spec §5.3: the hover reflection shows the README's opening line. Only
-  // featured repos need it, so this is at most four extra requests.
-  await Promise.all(featured.map(async (repo) => {
+  // Spec §5.3: the hover reflection shows the README's opening line. Four
+  // repos, so four extra requests.
+  await Promise.all(pinned.map(async (repo) => {
     try {
       const r = await fetch(
         `https://api.github.com/repos/${site.owner}/${repo.name}/readme`,
@@ -35,8 +67,8 @@ try {
     }
   }));
 
-  writeFileSync(OUT, `${JSON.stringify({ generatedAt: new Date().toISOString(), featured, rest }, null, 2)}\n`);
-  console.log(`repos.json updated: ${featured.length} featured, ${rest.length} other`);
+  writeFileSync(OUT, `${JSON.stringify({ generatedAt: new Date().toISOString(), pinned }, null, 2)}\n`);
+  console.log(`repos.json updated: ${pinned.length} pinned (${pinnedNames ? 'live pins' : 'site.pinned fallback'})`);
 } catch (err) {
   // Spec §4.3: the build must not fail when the API is unreachable.
   console.warn(`warning: repo fetch failed (${err.message}) — keeping committed repos.json`);

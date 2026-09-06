@@ -1,74 +1,41 @@
 {
-  "generatedAt": "2026-09-06T09:24:38.171Z",
-  "featured": [
+  "generatedAt": "2026-09-06T21:00:13.883Z",
+  "pinned": [
     {
-      "name": "mc-jukebox",
-      "description": "A Minecraft jukebox for the Noctalia bar. Discs pop out, drop in and land with a squash — drawn entirely in Cairo.",
-      "language": "Python",
-      "stars": 0,
-      "pushedAt": "2026-09-02T20:04:49Z",
-      "url": "https://github.com/omeg4-dev/mc-jukebox",
-      "accent": "hsl(204 78% 62%)",
-      "readmeLine": "💿 mc-jukebox"
-    },
-    {
-      "name": "magpie",
-      "description": "A clipboard that remembers pictures. Watches the Wayland clipboard, OCRs what it catches, and gives it back as a gallery.",
-      "language": "Python",
-      "stars": 0,
-      "pushedAt": "2026-09-02T20:01:01Z",
-      "url": "https://github.com/omeg4-dev/magpie",
-      "accent": "hsl(204 78% 62%)",
-      "readmeLine": "🐦‍⬛ magpie"
+      "name": "gamehub",
+      "description": "Multiplayer games on a TV, with phones as controllers over a QR code.",
+      "language": "JavaScript",
+      "pushedAt": "2026-09-02T20:00:56Z",
+      "url": "https://github.com/omeg4-dev/gamehub",
+      "accent": "hsl(208 78% 62%)",
+      "readmeLine": "🎮 Game Hub"
     },
     {
       "name": "hypr-keybind-overlay",
-      "description": "Your keyboard, floating in glass, with every bound key lit up. A Hyprland layer-shell overlay that reads your live config.",
+      "description": "Hyprland overlay that shows your keybinds on a picture of your keyboard.",
       "language": "Python",
-      "stars": 1,
       "pushedAt": "2026-09-02T20:00:58Z",
       "url": "https://github.com/omeg4-dev/hypr-keybind-overlay",
       "accent": "hsl(214 78% 62%)",
       "readmeLine": "⌨️ keybind-overlay"
     },
     {
-      "name": "gamehub",
-      "description": "A Wii-style living-room console: the TV is the screen, everyone's phone is the remote. Point, flick, press A.",
-      "language": "JavaScript",
-      "stars": 0,
-      "pushedAt": "2026-09-02T20:00:56Z",
-      "url": "https://github.com/omeg4-dev/gamehub",
-      "accent": "hsl(208 78% 62%)",
-      "readmeLine": "🎮 Game Hub"
-    }
-  ],
-  "rest": [
-    {
-      "name": "agemo.me",
-      "description": "",
-      "language": "JavaScript",
-      "stars": 0,
-      "pushedAt": "2026-09-05T21:05:31Z",
-      "url": "https://github.com/omeg4-dev/agemo.me",
-      "accent": "hsl(222 78% 62%)"
-    },
-    {
-      "name": "deadlyomega.lol",
-      "description": "",
-      "language": "JavaScript",
-      "stars": 0,
-      "pushedAt": "2026-09-02T20:09:37Z",
-      "url": "https://github.com/omeg4-dev/deadlyomega.lol",
-      "accent": "hsl(212 78% 62%)"
-    },
-    {
-      "name": "snake",
-      "description": "",
+      "name": "magpie",
+      "description": "Wayland clipboard history in SQLite, with OCR search over copied images.",
       "language": "Python",
-      "stars": 0,
-      "pushedAt": "2026-09-02T20:09:36Z",
-      "url": "https://github.com/omeg4-dev/snake",
-      "accent": "hsl(215 78% 62%)"
+      "pushedAt": "2026-09-02T20:01:01Z",
+      "url": "https://github.com/omeg4-dev/magpie",
+      "accent": "hsl(204 78% 62%)",
+      "readmeLine": "🐦‍⬛ magpie"
+    },
+    {
+      "name": "mc-jukebox",
+      "description": "Minecraft-style jukebox widget for the Noctalia bar, drawn in Cairo.",
+      "language": "Python",
+      "pushedAt": "2026-09-02T20:04:49Z",
+      "url": "https://github.com/omeg4-dev/mc-jukebox",
+      "accent": "hsl(204 78% 62%)",
+      "readmeLine": "💿 mc-jukebox"
     }
   ]
 }

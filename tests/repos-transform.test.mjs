@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { selectRepos, relativeAge, accentFor } from '../scripts/repos-transform.mjs';
+import { selectPinned, relativeAge, accentFor } from '../scripts/repos-transform.mjs';
 
 const DAY = 86_400_000;
 
@@ -19,34 +19,55 @@ const raw = [
     pushed_at: '2021-12-20T00:00:00Z', html_url: 'u/su', fork: false, archived: false, private: false },
 ];
 
-const config = { featured: ['mc-jukebox', 'magpie'], deny: ['sus'] };
+const config = { pinned: ['mc-jukebox', 'magpie'], deny: ['sus'] };
 
-test('excludes forks, archived, private, and deny-listed repos', () => {
-  const { featured, rest } = selectRepos(raw, config);
-  const names = [...featured, ...rest].map((r) => r.name);
-  assert.deepEqual(names.sort(), ['magpie', 'mc-jukebox', 'snake']);
+test('only pinned repos survive, in the pinned order', () => {
+  const pinned = selectPinned(raw, config, null);
+  assert.deepEqual(pinned.map((r) => r.name), ['mc-jukebox', 'magpie']);
 });
 
-test('featured repos are separated and ordered as configured', () => {
-  const { featured } = selectRepos(raw, config);
-  assert.deepEqual(featured.map((r) => r.name), ['mc-jukebox', 'magpie']);
+test('the live pin list wins over the configured fallback', () => {
+  const pinned = selectPinned(raw, config, ['snake', 'mc-jukebox']);
+  assert.deepEqual(pinned.map((r) => r.name), ['snake', 'mc-jukebox']);
 });
 
-test('rest is sorted most-recently-pushed first', () => {
-  const { rest } = selectRepos(raw, { featured: [], deny: ['sus'] });
-  assert.deepEqual(rest.map((r) => r.name), ['mc-jukebox', 'magpie', 'snake']);
+test('an empty live pin list falls back to config rather than emptying the page', () => {
+  assert.deepEqual(selectPinned(raw, config, []).map((r) => r.name), ['mc-jukebox', 'magpie']);
 });
 
-test('a configured featured repo that does not exist is skipped, not fabricated', () => {
-  const { featured } = selectRepos(raw, { featured: ['mc-jukebox', 'ghost'], deny: [] });
-  assert.deepEqual(featured.map((r) => r.name), ['mc-jukebox']);
+test('the deny-list still applies to a repo that is genuinely pinned', () => {
+  const pinned = selectPinned(raw, config, ['sus', 'magpie']);
+  assert.deepEqual(pinned.map((r) => r.name), ['magpie']);
+});
+
+test('archived and private repos are excluded even when pinned', () => {
+  const pinned = selectPinned(raw, config, ['old-thing', 'magpie']);
+  assert.deepEqual(pinned.map((r) => r.name), ['magpie']);
+});
+
+// A fork is a deliberate act when it is pinned, unlike when it is merely
+// present in the account, so forks are NOT filtered here.
+test('a pinned fork is kept', () => {
+  const pinned = selectPinned(raw, config, ['WaEnhancer']);
+  assert.deepEqual(pinned.map((r) => r.name), ['WaEnhancer']);
+});
+
+test('a pinned repo the REST payload does not contain is skipped, not fabricated', () => {
+  const pinned = selectPinned(raw, config, ['mc-jukebox', 'ghost']);
+  assert.deepEqual(pinned.map((r) => r.name), ['mc-jukebox']);
 });
 
 test('missing description and language become empty strings, never null', () => {
-  const { rest } = selectRepos(raw, { featured: [], deny: ['sus'] });
-  const snake = rest.find((r) => r.name === 'snake');
+  const [snake] = selectPinned(raw, config, ['snake']);
   assert.equal(snake.description, '');
   assert.equal(snake.language, '');
+});
+
+// Star counts were removed from the design; leaving the field in the payload
+// would let it quietly come back into a template.
+test('the normalised repo carries no star count', () => {
+  const [repo] = selectPinned(raw, config, ['mc-jukebox']);
+  assert.equal('stars' in repo, false);
 });
 
 test('relativeAge renders human spans', () => {
