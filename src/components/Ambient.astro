@@ -82,16 +82,19 @@
   import { initAmbient } from '../scripts/ambient.js';
   // Behind first paint on purpose: the aurora is already the finished
   // background, so the shader has no reason to compete with LCP.
-  // Wait for load, THEN for genuine idle. The previous version used
-  // requestIdleCallback's timeout as the deadline, which forces the callback
-  // to run whether or not the machine is idle — so on a slow device the
-  // shader started in the middle of the load burst, exactly when it could
-  // least afford to. There is no deadline now: if the browser never goes
-  // idle, not starting is the correct outcome, and ambient.js retires the
-  // loop by itself if the frames it does get are too slow.
+  // Wait for load, THEN for idle. It used to wait only for idle with a
+  // 2500ms deadline, which forces the callback to run whether or not the
+  // machine is idle — so on a slow device the shader started in the middle
+  // of the load burst, exactly when it could least afford to. Gating on load
+  // first means the deadline can no longer fire during the load itself,
+  // while still guaranteeing the layer appears on a page that never goes
+  // fully idle. ambient.js then throttles itself to what the machine can
+  // actually deliver.
   const boot = () => initAmbient();
   const schedule = () =>
-    ('requestIdleCallback' in window ? requestIdleCallback(boot) : setTimeout(boot, 200));
+    ('requestIdleCallback' in window
+      ? requestIdleCallback(boot, { timeout: 3000 })
+      : setTimeout(boot, 200));
   if (document.readyState === 'complete') schedule();
   else window.addEventListener('load', schedule, { once: true });
 </script>

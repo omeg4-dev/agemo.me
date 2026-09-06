@@ -210,32 +210,31 @@ export function initAmbient() {
                              // halves the battery cost of a always-on layer.
   const start = performance.now();
 
-  // Adaptive bail-out.
+  // Adaptive frame budget.
   //
   // The shader is trivial on a GPU and ruinous without one: on a software
-  // rasteriser each full-viewport frame costs ~160ms, so a 30fps loop simply
-  // owns the main thread. Measured on a 6x-throttled CPU this layer alone was
-  // 6.3s of main-thread work and 3.7s of total blocking time — the page stayed
-  // visually correct and stopped responding.
+  // rasteriser each full-viewport frame costs ~150ms, so a 30fps loop simply
+  // owns the main thread. Measured under a 6x CPU throttle this layer alone
+  // was 6.3s of main-thread work and 3.7s of total blocking time — the page
+  // stayed visually correct and stopped responding.
   //
-  // Rather than guess at device class from hardwareConcurrency or a UA string,
-  // watch what the machine actually delivers: sample the first second of real
-  // frames and stop if the loop cannot hold a usable rate. Dropping
-  // data-active fades the canvas out and leaves the CSS aurora, which is a
-  // finished background in its own right — the same path already taken on
-  // context loss and on no-WebGL.
+  // Rather than guess at device class from hardwareConcurrency or a UA
+  // string, watch what the machine actually delivers: sample the first second
+  // of real frames, and if the loop could not hold a usable rate, ask for
+  // frames far less often so the layer takes a small slice of the machine
+  // instead of all of it.
+  //
+  // Back off rather than stop. An earlier version retired the loop outright,
+  // which reads well in a benchmark and badly in life: on any machine without
+  // a GPU — a VM, a remote desktop, a Linux box with no driver — the living
+  // background the page is built around would simply never appear. Slow and
+  // present beats absent. Only context loss retires it.
   const PROBE_MS = 1000;
   const MIN_FPS = 12;
+  const BACKOFF = 4;      // leave the machine ~3/4 of the time it was using
+  let frameGap = FRAME;
   let drawn = 0;
   let probed = false;
-
-  function tooSlowFor(now) {
-    if (probed) return false;
-    const elapsed = now - start;
-    if (elapsed < PROBE_MS) return false;
-    probed = true;
-    return drawn / (elapsed / 1000) < MIN_FPS;
-  }
 
   function retire() {
     running = false;
@@ -246,10 +245,15 @@ export function initAmbient() {
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
-    if (now - last < FRAME) return;
+    if (now - last < frameGap) return;
     last = now;
 
-    if (tooSlowFor(now)) return retire();
+    const elapsed = now - start;
+    if (!probed && elapsed >= PROBE_MS) {
+      probed = true;
+      const fps = drawn / (elapsed / 1000);
+      if (fps < MIN_FPS) frameGap = 1000 / Math.max(fps / BACKOFF, 0.4);
+    }
     drawn += 1;
 
     mouse.x += (target.x - mouse.x) * 0.045;
