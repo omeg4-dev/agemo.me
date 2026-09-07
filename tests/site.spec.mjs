@@ -880,7 +880,79 @@ test('every slab links to its repo safely in a new tab', async ({ page }) => {
 test('the uses block lists the machine', async ({ page }) => {
   await page.goto('/');
   const text = await page.locator('[data-uses]').innerText();
-  for (const { v } of site.uses) expect(text).toContain(v);
+  for (const section of site.machine) {
+    for (const { k, v } of section.rows) {
+      expect(text, `${section.name}.${k}`).toContain(v);
+    }
+  }
+});
+
+/* The fastfetch frame is drawn from four separate CSS borders that have to
+   meet: the ╭ corner's top edge, the ── rule that continues it, the │ gutter
+   down the rows, and the ╰ that closes it. Nothing about a mismatch throws --
+   it just renders as a broken bracket -- so it is measured. */
+test('each machine section draws one continuous bracket', async ({ page }) => {
+  await page.goto('/');
+  const blocks = page.locator('[data-uses] .ff__block');
+  const count = await blocks.count();
+  expect(count).toBe(site.machine.length);
+
+  for (let i = 0; i < count; i += 1) {
+    const geom = await blocks.nth(i).evaluate((block) => {
+      const title = block.querySelector('.ff__title');
+      const titleBox = title.getBoundingClientRect();
+      // Measure where the corner actually IS, not where the stylesheet is
+      // assumed to put it: Chromium resolves a pseudo-element's percentage
+      // offsets to px, so this reads the used value. Deriving it from the
+      // title box instead would make the assertion below vacuous.
+      const corner = getComputedStyle(title, '::before');
+      const cornerTop = titleBox.top + parseFloat(corner.top);
+      const rule = block.querySelector('.ff__rule').getBoundingClientRect();
+      const rows = block.querySelector('.ff__rows').getBoundingClientRect();
+      const close = block.querySelector('.ff__close').getBoundingClientRect();
+      return {
+        cornerTop,
+        cornerLeft: titleBox.left + parseFloat(corner.left),
+        ruleMid: rule.top + rule.height / 2,
+        rowsLeft: rows.left,
+        rowsTop: rows.top,
+        rowsBottom: rows.bottom,
+        closeLeft: close.left,
+        closeTop: close.top,
+        closeHeight: close.height,
+      };
+    });
+
+    // The corner's top border and the rule sit on one horizontal line.
+    expect(Math.abs(geom.cornerTop - geom.ruleMid), `section ${i} corner/rule y`)
+      .toBeLessThanOrEqual(1.5);
+    // The ╭, the │ and the ╰ share one vertical line.
+    expect(Math.abs(geom.cornerLeft - geom.rowsLeft), `section ${i} corner/gutter x`)
+      .toBeLessThanOrEqual(1.5);
+    expect(Math.abs(geom.closeLeft - geom.rowsLeft), `section ${i} close/gutter x`)
+      .toBeLessThanOrEqual(1.5);
+    // The closing bracket picks up exactly where the gutter stops.
+    expect(Math.abs(geom.closeTop - geom.rowsBottom), `section ${i} gutter/close seam`)
+      .toBeLessThanOrEqual(1.5);
+    expect(geom.closeHeight, `section ${i} close has height`).toBeGreaterThan(2);
+  }
+});
+
+test('every machine icon resolves to a symbol in the sprite', async ({ page }) => {
+  await page.goto('/');
+  const missing = await page.locator('[data-uses]').evaluate((root) => {
+    const bad = [];
+    for (const use of root.querySelectorAll('use')) {
+      const id = (use.getAttribute('href') || use.getAttribute('xlink:href') || '').slice(1);
+      // The sprite is a sibling of the panel, so resolve ids the way the
+      // browser does -- against the whole document.
+      if (!id || !document.getElementById(id)) bad.push(id || '(empty)');
+    }
+    return bad;
+  });
+  expect(missing).toEqual([]);
+  // And there is at least one, or the assertion above is vacuous.
+  expect(await page.locator('[data-uses] use').count()).toBeGreaterThan(10);
 });
 
 test('contact offers Discord and GitHub only', async ({ page }) => {

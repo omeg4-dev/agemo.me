@@ -1,33 +1,82 @@
 ---
 import site from '../config/site.mjs';
+
+// The dot-matrix Ω, generated from ~/.config/fastfetch/logo.ansi by
+// scripts/gen-omega-logo.py. Inlined rather than <img>-ed so it inherits the
+// page's own rendering and costs no request.
+const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 ---
 <section class="machine" aria-labelledby="machine-heading" data-reveal>
   <h2 class="machine__heading" id="machine-heading">The machine</h2>
 
-  <div class="machine__body">
-    <!-- Block-drawing characters U+2580-2588 only. Those ARE in the font
-         subset (task-4-addendum §4); Ω, ★ and ⟷ are not and ship as SVG. -->
-    <pre class="machine__mark" aria-hidden="true">{`   ▄▄▄▄▄
- ▄█████████▄
-███▀     ▀███
-███       ███
-███       ███
-▀██▄     ▄██▀
- ▀█▀     ▀█▀
-▄███▄   ▄███▄`}</pre>
+  <!--
+    The real thing prints its frame with box-drawing characters (╭ │ ╰ ─) and
+    its icons with a Nerd Font. Neither is available here: the subset is
+    U+0000-00FF plus a handful of arrows and blocks (task-4-addendum §4), so
+    every one of those would render as tofu. The frame is therefore drawn with
+    CSS borders and gradients, and the icons are inline SVG — which also means
+    the corners stay crisp at any size instead of being bound to a cell grid.
+  -->
+  <svg class="machine__sprite" aria-hidden="true" focusable="false" width="0" height="0">
+    <defs>
+      <g id="ff-gear"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7"/></g>
+      <g id="ff-terminal"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7 10l2.6 2.4L7 14.8M12.4 15.2H17"/></g>
+      <g id="ff-chip"><rect x="7" y="7" width="10" height="10" rx="1.6"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+      <g id="ff-palette"><path d="M12 3.5a8.5 8.5 0 100 17c1.4 0 2-.9 2-1.8 0-1.6-1.6-1.7-1.6-3 0-.9.8-1.6 1.9-1.6h1.4a4.8 4.8 0 004.8-4.8c0-3.4-3.8-5.8-8.5-5.8z"/><circle cx="8" cy="9.5" r="1.1"/><circle cx="12" cy="7.6" r="1.1"/><circle cx="16" cy="9.8" r="1.1"/></g>
+      <g id="ff-user"><circle cx="12" cy="8.6" r="3.4"/><path d="M5.4 19.4a6.8 6.8 0 0113.2 0"/></g>
+      <g id="ff-os"><path d="M12 2.8L20 20.6H4z"/><path d="M12 9.4l4.4 9.8h-8.8z"/></g>
+      <g id="ff-kernel"><path d="M12 3.4c2.5 0 3.6 2 3.6 4.6 0 2 .6 2.6 1.9 4.6 1.3 2 2.4 3.4 2.4 5 0 1.7-1.6 2.6-3.3 2.6h-9.2c-1.7 0-3.3-.9-3.3-2.6 0-1.6 1.1-3 2.4-5 1.3-2 1.9-2.6 1.9-4.6 0-2.6 1.1-4.6 3.6-4.6z"/><circle cx="10.3" cy="8.2" r=".9"/><circle cx="13.7" cy="8.2" r=".9"/></g>
+      <g id="ff-shell"><path d="M4 6.5l5.5 5.5L4 17.5M12.5 17.5H20"/></g>
+      <g id="ff-wm"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9.5h18M11 9.5v10"/></g>
+      <g id="ff-bar"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/><circle cx="6.3" cy="6.7" r=".85"/><circle cx="9.1" cy="6.7" r=".85"/></g>
+      <g id="ff-display"><rect x="2.6" y="4.6" width="18.8" height="12" rx="2"/><path d="M9 20h6M12 16.6V20"/></g>
+      <g id="ff-cpu"><rect x="6.5" y="6.5" width="11" height="11" rx="1.6"/><rect x="10" y="10" width="4" height="4" rx=".8"/><path d="M9.5 2.8v3.7M14.5 2.8v3.7M9.5 17.5v3.7M14.5 17.5v3.7M2.8 9.5h3.7M2.8 14.5h3.7M17.5 9.5h3.7M17.5 14.5h3.7"/></g>
+      <g id="ff-gpu"><rect x="2.6" y="6.5" width="18.8" height="11" rx="2"/><circle cx="9" cy="12" r="2.8"/><path d="M15 9.6h3.6M15 14.4h3.6M6.5 17.5v3.2M17 17.5v3.2"/></g>
+      <g id="ff-ram"><rect x="2.6" y="7.5" width="18.8" height="9" rx="1.6"/><path d="M6.4 16.5v3M17.6 16.5v3M9 10.6v3M12 10.6v3M15 10.6v3"/></g>
+      <g id="ff-disk"><ellipse cx="12" cy="6.4" rx="8" ry="3"/><path d="M4 6.4v11.2c0 1.7 3.6 3 8 3s8-1.3 8-3V6.4"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></g>
+      <g id="ff-vol"><rect x="2.8" y="4.6" width="18.4" height="6" rx="1.6"/><rect x="2.8" y="13.4" width="18.4" height="6" rx="1.6"/><path d="M6.4 7.6h.02M6.4 16.4h.02"/></g>
+      <g id="ff-fs"><ellipse cx="12" cy="6" rx="7.6" ry="2.9"/><path d="M4.4 6v5.6c0 1.6 3.4 2.9 7.6 2.9s7.6-1.3 7.6-2.9V6"/><path d="M4.4 12.4V18c0 1.6 3.4 2.9 7.6 2.9s7.6-1.3 7.6-2.9v-5.6"/></g>
+      <g id="ff-lang"><path d="M8.6 7.4L3.8 12l4.8 4.6M15.4 7.4L20.2 12l-4.8 4.6M13.6 4.6l-3.2 14.8"/></g>
+      <g id="ff-editor"><path d="M3.6 16.8L14.9 5.5a2.2 2.2 0 013.2 0l.4.4a2.2 2.2 0 010 3.2L7.2 20.4l-4.4 1.2z"/><path d="M13.3 7.1l3.6 3.6"/></g>
+    </defs>
+  </svg>
 
-    <dl class="machine__list" data-uses>
-      {site.uses.map(({ k, v }, i) => (
-        <div class="machine__row" style={`--i: ${i}`}>
-          <dt>{k}</dt>
-          <dd>{v}</dd>
-        </div>
+  <div class="ff">
+    <div class="ff__logo" set:html={logo} />
+
+    <div class="ff__panel" data-uses>
+      {site.machine.map((section, si) => (
+        <section class="ff__block" style={`--c: ${section.colour}; --i: ${si}`}>
+          <h3 class="ff__title">
+            <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${section.icon}`} /></svg>
+            <span>{section.name}</span>
+            <span class="ff__rule" aria-hidden="true"></span>
+          </h3>
+
+          <dl class="ff__rows">
+            {section.rows.map((row) => (
+              <div class="ff__row">
+                <dt>
+                  <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${row.icon}`} /></svg>
+                  <span>{row.k}</span>
+                </dt>
+                <dd>{row.v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div class="ff__close" aria-hidden="true"></div>
+        </section>
       ))}
-    </dl>
+
+      <ul class="ff__swatches" aria-hidden="true">
+        {site.swatches.map((c) => <li style={`--s: ${c}`}></li>)}
+      </ul>
+    </div>
   </div>
 
   <p class="machine__steal">
-    <a href={site.links.dotfiles} target="_blank" rel="noopener noreferrer">steal my dotfiles →</a>
+    <a href={site.links.github} target="_blank" rel="noopener noreferrer">all of it on github →</a>
   </p>
 </section>
 
@@ -47,71 +96,164 @@ import site from '../config/site.mjs';
     color: var(--muted);
   }
 
-  .machine__body {
+  .machine__sprite { position: absolute; }
+  /* One stroke style for the whole set, set here rather than on 19 symbols. */
+  .machine__sprite g {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ff__icon { width: 1em; height: 1em; flex: none; }
+
+  .ff {
     display: grid;
-    gap: clamp(1.5rem, 5vw, 4rem);
+    gap: clamp(1.5rem, 4vw, 3rem);
     align-items: center;
     grid-template-columns: 1fr;
-    padding: clamp(1.5rem, 4vw, 2.5rem);
-    background: var(--surface);
+    padding: clamp(1.2rem, 3.5vw, 2.2rem);
     border: 1px solid color-mix(in oklab, var(--muted) 22%, transparent);
     border-radius: 14px;
+    background:
+      linear-gradient(160deg, color-mix(in oklab, var(--accent) 4%, var(--surface)), var(--surface) 55%);
   }
-  @media (min-width: 720px) { .machine__body { grid-template-columns: auto 1fr; } }
-
-  .machine__mark {
-    margin: 0;
-    font-size: clamp(0.5rem, 1.4vw, 0.75rem);
-    line-height: 1.05;
-    color: var(--accent);
-    /* The mark pulses like a machine that is on rather than a printed logo.
-       drop-shadow rather than text-shadow so the glow follows the glyph
-       edges of the block characters instead of their full em boxes. */
-    animation: machine-pulse 4.5s var(--ease) infinite alternate;
-  }
-  @keyframes machine-pulse {
-    from { opacity: 0.75; filter: drop-shadow(0 0 1px color-mix(in oklab, var(--accent) 30%, transparent)); }
-    to   { opacity: 1;    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--accent) 45%, transparent)); }
+  @media (min-width: 900px) {
+    .ff { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
+    .ff__logo :global(svg) { max-width: 100%; }
   }
 
-  .machine__list { display: grid; gap: 0.5rem; margin: 0; }
-  .machine__row {
-    display: grid;
-    grid-template-columns: 6rem 1fr;
-    gap: 1rem;
+  .ff__logo { display: flex; justify-content: center; }
+  .ff__logo :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* Single column, the Ω would otherwise eat most of a phone screen
+       before a single row of the readout is visible. */
+    max-width: min(100%, 22rem);
+    /* The dots pulse as one, so the Ω reads as lit rather than printed. */
+    animation: logo-breathe 6s var(--ease) infinite alternate;
+  }
+  @keyframes logo-breathe {
+    from { opacity: 0.7; filter: drop-shadow(0 0 0 transparent); }
+    to   { opacity: 1;   filter: drop-shadow(0 0 8px color-mix(in oklab, var(--accent-2) 40%, transparent)); }
+  }
+
+  .ff__panel {
     font-family: var(--font-mono);
-    font-size: 0.86rem;
-    position: relative;
+    font-size: clamp(0.66rem, 1.15vw, 0.78rem);
+    line-height: 1.75;
+    min-width: 0;
   }
-  .machine__row dt { color: var(--accent-2); }
-  .machine__row dd { margin: 0; color: var(--text); }
 
-  /* A scanline sweeping the list, one row at a time. The delay is derived
-     from --i so the rows light in reading order regardless of how many
-     entries site.uses grows to. */
-  .machine__row::after {
+  .ff__block { --c: var(--accent); }
+  .ff__block + .ff__block { margin-top: 0.9rem; }
+
+  /* ╭─ icon NAME ─────────  */
+  .ff__title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0;
+    padding-left: 1.5em;
+    font-size: inherit;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--c);
+  }
+  /* Absolute, not a flex item: the corner's TOP border has to land on exactly
+     the same y as .ff__rule, and no align-self value can put a box's edge --
+     rather than its centre or its baseline -- on the line's centre. top: 50%
+     does it directly, and the corner then hangs downward toward the gutter. */
+  .ff__title::before {
     content: '';
     position: absolute;
-    inset: -0.15rem -0.4rem;
-    border-radius: 5px;
-    background: linear-gradient(90deg,
-      transparent,
-      color-mix(in oklab, var(--accent) 12%, transparent),
-      transparent);
-    pointer-events: none;
-    opacity: 0;
-    animation: row-scan 6s var(--ease) infinite;
-    animation-delay: calc(var(--i, 0) * 320ms);
+    left: 0;
+    top: 50%;
+    width: 0.9em;
+    height: 0.9em;
+    border-left: 1px solid var(--c);
+    border-top: 1px solid var(--c);
+    border-top-left-radius: 5px;
   }
-  @keyframes row-scan {
-    0%, 70%, 100% { opacity: 0; }
-    82%           { opacity: 1; }
+  /* The fading ── run that closes the header line. */
+  .ff__rule {
+    flex: 1;
+    height: 1px;
+    min-width: 1.5rem;
+    background: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 8%, transparent));
+  }
+
+  /* The │ gutter. */
+  .ff__rows {
+    margin: 0;
+    padding-left: 0.9em;
+    border-left: 1px solid color-mix(in oklab, var(--c) 42%, transparent);
+  }
+
+  .ff__row {
+    display: grid;
+    grid-template-columns: minmax(6.5em, auto) 1fr;
+    gap: 0.4em 1em;
+    align-items: baseline;
+  }
+  .ff__row dt {
+    display: flex;
+    align-items: center;
+    gap: 0.55em;
+    color: var(--c);
+  }
+  .ff__row dd {
+    margin: 0;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+
+  /* ╰──────────── */
+  .ff__close {
+    height: 0.85em;
+    border-left: 1px solid var(--c);
+    border-bottom: 1px solid var(--c);
+    border-bottom-left-radius: 5px;
+    /* The bottom border fades out the way the printed run of dashes does. */
+    border-image: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 5%, transparent)) 1;
+    border-top: 0;
+    border-right: 0;
+  }
+
+  .ff__swatches {
+    display: flex;
+    gap: 0.55em;
+    list-style: none;
+    margin: 1rem 0 0;
+    padding-left: 1.2em;
+  }
+  .ff__swatches li {
+    width: 0.72em;
+    height: 0.72em;
+    border-radius: 50%;
+    background: var(--s);
+    animation: swatch-pop 4.5s var(--ease) infinite;
+  }
+  .ff__swatches li:nth-child(1) { animation-delay: 0ms; }
+  .ff__swatches li:nth-child(2) { animation-delay: 110ms; }
+  .ff__swatches li:nth-child(3) { animation-delay: 220ms; }
+  .ff__swatches li:nth-child(4) { animation-delay: 330ms; }
+  .ff__swatches li:nth-child(5) { animation-delay: 440ms; }
+  .ff__swatches li:nth-child(6) { animation-delay: 550ms; }
+  .ff__swatches li:nth-child(7) { animation-delay: 660ms; }
+  .ff__swatches li:nth-child(8) { animation-delay: 770ms; }
+  @keyframes swatch-pop {
+    0%, 82%, 100% { transform: scale(1);    opacity: 0.75; }
+    88%           { transform: scale(1.45); opacity: 1; }
   }
 
   .machine__steal { font-family: var(--font-mono); font-size: 0.82rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .machine__mark { animation: none; opacity: 0.85; }
-    .machine__row::after { display: none; }
+    .ff__logo :global(svg) { animation: none; opacity: 0.95; }
+    .ff__swatches li { animation: none; opacity: 1; }
   }
 </style>
