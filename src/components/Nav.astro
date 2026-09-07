@@ -44,13 +44,22 @@ const items = [
     backdrop-filter: blur(2px);
   }
 
-  .nav__list { display: flex; gap: 1.1rem; list-style: none; margin: 0; padding: 0; }
+  .nav__list { display: flex; align-items: center; gap: 0.75rem; list-style: none; margin: 0; padding: 0; }
 
   .nav__home, .nav__link {
     position: relative;
     color: var(--muted);
     text-decoration: none;
     transition: color var(--dur-1) var(--ease);
+    /* A 15px-tall tap target is a miss on a phone. The padding brings every
+       nav item to the 44px minimum; the negative margin keeps the bar the
+       same height it was, so this buys the hit area without moving anything
+       visually. min-height rather than height so a wrapped label still grows. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 0.35rem;
+    margin-block: -0.9rem;
   }
   .nav__home { color: var(--text); letter-spacing: 0.3em; }
   .nav__home:hover, .nav__link:hover, .nav__link:focus-visible { color: var(--accent); }
@@ -60,7 +69,12 @@ const items = [
   .nav__link::after {
     content: '';
     position: absolute;
-    left: 0; right: 0; bottom: -0.35em;
+    /* The link box is now 44px tall for the tap target, so the underline is
+       hung off the vertical centre rather than off the box's bottom edge --
+       otherwise it drifts a long way below the label. Inset matches the
+       padding so it underlines the text, not the hit area. */
+    left: 0.35rem; right: 0.35rem;
+    bottom: 50%; margin-bottom: -0.85em;
     height: 1px;
     background: var(--accent);
     transform: scaleX(0);

@@ -969,6 +969,100 @@ test('every machine icon resolves to a symbol in the sprite', async ({ page }) =
   expect(parseFloat(painted.strokeWidth)).toBeGreaterThan(1);
 });
 
+test('every page carries the mirrored wordmark in its title', async ({ page }) => {
+  for (const [path, lead] of [['/', ''], ['/links', 'links · '], ['/does-not-exist', '404 · ']]) {
+    const res = await page.goto(path);
+    if (path === '/does-not-exist') expect(res.status()).toBe(404);
+    // Omega reversed IS agemO -- the capital moving front to back is the whole
+    // point, so this asserts the exact string, not a loose match.
+    await expect(page).toHaveTitle(`${lead}Omega ⟷ agemO`);
+  }
+});
+
+test('the favicon is wired up and every file it points at is served', async ({ page, request }) => {
+  await page.goto('/');
+  const icons = await page.locator('link[rel="icon"], link[rel="apple-touch-icon"]')
+    .evaluateAll((els) => els.map((e) => ({ rel: e.getAttribute('rel'), href: e.getAttribute('href'), type: e.getAttribute('type') })));
+  expect(icons.some((i) => i.href === '/favicon.svg' && i.type === 'image/svg+xml')).toBe(true);
+  expect(icons.some((i) => i.href === '/favicon.ico')).toBe(true);
+  expect(icons.some((i) => i.rel === 'apple-touch-icon')).toBe(true);
+
+  // A <link> pointing at a 404 is the whole failure mode here, and nothing
+  // else in the suite would notice it.
+  for (const { href } of icons) {
+    const res = await request.get(href);
+    expect(res.status(), href).toBe(200);
+    expect(Number(res.headers()['content-length'] ?? 1), href).toBeGreaterThan(0);
+  }
+
+  // The SVG is generated, so prove it actually parses rather than trusting it.
+  const svg = await (await request.get('/favicon.svg')).text();
+  const parsed = await page.evaluate((src) => {
+    const doc = new DOMParser().parseFromString(src, 'image/svg+xml');
+    return {
+      error: !!doc.querySelector('parsererror'),
+      paths: doc.querySelectorAll('path').length,
+      uses: doc.querySelectorAll('use').length,
+    };
+  }, svg);
+  expect(parsed.error).toBe(false);
+  expect(parsed.paths).toBeGreaterThan(0);
+  expect(parsed.uses).toBe(2);   // the lit glyph and its reflection
+});
+
+/* Device fitness. Both of these are things the desktop project cannot see:
+   Playwright's default context hovers and has a mouse, so a hover-gated
+   element looks reachable and a 15px link looks tappable. */
+test('every link and button clears the 44px touch minimum', async ({ browser }) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true,
+  });
+  const page = await ctx.newPage();
+  for (const path of ['/', '/links']) {
+    await page.goto(path);
+    await page.waitForTimeout(400);
+    const small = await page.evaluate(() => {
+      const out = [];
+      for (const el of document.querySelectorAll('a, button')) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) continue;   // genuinely hidden
+        if (r.height < 44 || r.width < 44) {
+          out.push(`${(el.textContent || '').trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`);
+        }
+      }
+      return out;
+    });
+    expect(small, path).toEqual([]);
+  }
+  await ctx.close();
+});
+
+test('link destinations are readable without a hover', async ({ browser }) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
+  });
+  const page = await ctx.newPage();
+  await page.goto('/links');
+  await page.waitForTimeout(400);
+  const rows = await page.locator('.row').evaluateAll((els) => els.map((r) => {
+    const stack = r.querySelector('.row__stack').getBoundingClientRect();
+    const frac = (el) => {
+      const b = el.getBoundingClientRect();
+      const top = Math.max(b.top, stack.top);
+      const bottom = Math.min(b.bottom, stack.bottom);
+      return Math.max(0, bottom - top) / b.height;
+    };
+    return { title: frac(r.querySelector('.row__title')), host: frac(r.querySelector('.row__host')) };
+  }));
+  expect(rows.length).toBeGreaterThan(0);
+  for (const { title, host } of rows) {
+    // On a phone the swap can never fire, so BOTH lines must simply be shown.
+    expect(title).toBeGreaterThan(0.9);
+    expect(host).toBeGreaterThan(0.9);
+  }
+  await ctx.close();
+});
+
 test('contact offers Discord and GitHub only', async ({ page }) => {
   await page.goto('/');
   const hrefs = await page.locator('[data-reach] a').evaluateAll((els) => els.map((e) => e.href));

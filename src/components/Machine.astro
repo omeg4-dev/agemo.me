@@ -275,6 +275,16 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
   }
 
   .machine__steal { font-family: var(--font-mono); font-size: 0.82rem; }
+  /* Same 44px tap-target floor as the nav: the link's own text box is only
+     17px tall. Inline-flex + min-height, with the padding pulled back out of
+     the flow so the spacing around the paragraph does not change. */
+  .machine__steal a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 0.2rem;
+    margin-block: -0.85rem;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .ff__logo :global(svg) { animation: none; opacity: 0.95; }

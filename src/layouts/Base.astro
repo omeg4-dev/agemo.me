@@ -39,6 +39,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <link rel="canonical" href={canonical} />
+    <!-- The SVG is the real icon and scales to every size; .ico is the
+         fallback for browsers that ignore it. The order matters: browsers
+         that understand SVG take the first match, older ones fall through.
+         The ⟷ in the title is safe here even though it is outside the font
+         subset — a tab title is drawn by the browser chrome in a system
+         font, never by the page's webfonts. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/instrument-serif.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/plex-mono.woff2" as="font" type="font/woff2" crossorigin />
   </head>

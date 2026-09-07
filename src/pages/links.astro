@@ -24,7 +24,7 @@ const host = (url) => {
 
 const total = String(data.links.length).padStart(2, '0');
 ---
-<Base title="links — agemo" description="Things worth keeping a pointer to.">
+<Base title="links · Omega ⟷ agemO" description="Things worth keeping a pointer to.">
   <Ambient />
   <Nav here="links" />
 
@@ -235,6 +235,18 @@ const total = String(data.links.length).padStart(2, '0');
   @media (max-width: 620px) {
     .row__hit { grid-template-columns: auto 1fr; }
     .row__go { display: none; }
+  }
+
+  /* A touch device never fires :hover, so on a phone the swap above can never
+     run and the destination host -- which is information, not decoration --
+     was simply unreachable. Stop clipping and show both lines outright. Keyed
+     off the pointer, not the width: a small window on a laptop still hovers,
+     and a large tablet still does not. */
+  @media (hover: none) {
+    .row__stack { height: auto; }
+    .row__slide { transform: none; }
+    .row__title, .row__host { display: block; }
+    .row__host { font-size: clamp(0.78rem, 2vw, 1rem); opacity: 0.8; }
   }
 
   @media (prefers-reduced-motion: reduce) {

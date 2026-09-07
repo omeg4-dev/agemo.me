@@ -76,13 +76,18 @@ void main() {
   vec2 q = vec2(fbm(p * 1.6 + t), fbm(p * 1.6 + vec2(5.2, 1.3) - t));
   float f = fbm(p * 1.6 + 2.4 * q);
 
-  // Ridged bands off the flow field = caustics.
+  // Ridged bands off the flow field = caustics. Two ridges at different
+  // frequencies and opposite drift, so they beat against each other instead
+  // of pulsing as one sheet. Both reuse f, so the second one costs a sin and
+  // a pow and no extra noise -- fbm is the only expensive thing in here.
   float caustic = pow(abs(sin(f * 6.2831 + u_time * 0.22)), 4.0);
+  float caustic2 = pow(abs(sin(f * 11.9 - u_time * 0.15)), 7.0);
 
   // Light comes from above and dies with depth, both down the viewport
   // and down the document.
   float fromTop = smoothstep(1.15, -0.15, uv.y);
   caustic *= fromTop * (1.0 - u_depth * 0.72);
+  caustic2 *= fromTop * (1.0 - u_depth * 0.55);
 
   float m = motes(p, 9.0,  0.05, u_time) * 0.55
           + motes(p, 5.0,  0.03, u_time) * 0.85
@@ -91,17 +96,25 @@ void main() {
 
   // Cursor light, lagged in JS so it trails the pointer.
   float md = distance(p, vec2(u_mouse.x * aspect, u_mouse.y));
-  float glow = exp(-md * 3.1) * 0.085;
+  float glow = exp(-md * 3.1) * 0.12;
 
   // Slow vertical shafts, barely there — they give the field a direction.
-  float shaft = pow(abs(sin(p.x * 1.9 + fbm(p * 0.8 + t * 0.4) * 3.0)), 8.0)
-              * fromTop * 0.05 * (1.0 - u_depth * 0.5);
+  // Vertical shafts. Wider (pow 6 not 8) and brighter than they were, and
+  // they now breathe, so the field reads as lit from a moving surface.
+  float shaft = pow(abs(sin(p.x * 1.9 + fbm(p * 0.8 + t * 0.4) * 3.0)), 6.0)
+              * fromTop * (0.13 + 0.05 * sin(u_time * 0.13 + p.x * 2.0))
+              * (1.0 - u_depth * 0.5);
 
   vec3 warm = mix(u_accent, u_accent2, 0.35 + 0.65 * sin(f * 3.0 + u_time * 0.1) * 0.5 + 0.5);
 
+  // Colder and bluer the further down the document you are, so scrolling is
+  // legible in the background and not only in the content.
+  vec3 deep = mix(u_accent, vec3(0.06, 0.18, 0.30), u_depth * 0.55);
+
   vec3 col = vec3(0.0);
-  col += warm * caustic * 0.13;
-  col += u_accent2 * m * 0.30;
+  col += warm * caustic * 0.30;
+  col += deep * caustic2 * 0.17;
+  col += u_accent2 * m * 0.40;
   col += u_accent * glow;
   col += u_accent2 * shaft;
 
