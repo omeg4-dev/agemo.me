@@ -953,6 +953,20 @@ test('every machine icon resolves to a symbol in the sprite', async ({ page }) =
   expect(missing).toEqual([]);
   // And there is at least one, or the assertion above is vacuous.
   expect(await page.locator('[data-uses] use').count()).toBeGreaterThan(10);
+
+  /* Resolving is not the same as painting. <use> clones the symbol into a
+     shadow tree whose ancestors are the .ff__icon <svg>, NOT the sprite, so a
+     stroke style hung off the sprite styles only the hidden original and every
+     clone falls back to the initial fill:black / stroke:none -- solid black
+     silhouettes on a near-black panel, with the round-cap dot paths vanishing
+     outright. Measured on the clone, which is the thing the user sees. */
+  const painted = await page.locator('[data-uses] use').first().evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { fill: cs.fill, stroke: cs.stroke, strokeWidth: cs.strokeWidth };
+  });
+  expect(painted.fill).toBe('none');
+  expect(painted.stroke).not.toBe('none');
+  expect(parseFloat(painted.strokeWidth)).toBeGreaterThan(1);
 });
 
 test('contact offers Discord and GitHub only', async ({ page }) => {

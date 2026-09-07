@@ -23,7 +23,12 @@ R_BIG, R_SMALL = 3.6, 2.2
 src, out = sys.argv[1], sys.argv[2]
 lines = open(src, encoding="utf-8").read().split("\n")
 
-token = re.compile(r"\x1b\[([0-9;]*)m|([^\x1b])")
+# Two escape alternatives, not one: an SGR sequence carries colour, and any
+# OTHER CSI (\x1b[0K, \x1b[?25l ...) must be consumed whole. Matching only
+# m-terminated CSI leaves the rest of such a sequence to fall through the
+# printable branch, where every one of its bytes advances x and shifts the
+# remainder of the row to the right.
+token = re.compile(r"\x1b\[([0-9;]*)m|\x1b\[[0-9;?]*[A-Za-z]|([^\x1b])")
 cells = []
 cols = 0
 for y, line in enumerate(lines):
@@ -33,6 +38,8 @@ for y, line in enumerate(lines):
             p = m.group(1).split(";")
             if len(p) >= 5 and p[0] == "38" and p[1] == "2":
                 colour = "#%02x%02x%02x" % (int(p[2]), int(p[3]), int(p[4]))
+            elif p in ([""], ["0"]):
+                colour = "#ffffff"   # a reset must not leak the previous colour
             continue
         ch = m.group(2)
         if ch in ("Ω", "ω"):
@@ -40,6 +47,8 @@ for y, line in enumerate(lines):
         x += 1
         cols = max(cols, x)
 
+if not cells:
+    sys.exit(f"{src}: no Ω or ω found — is this really a fastfetch logo.ansi?")
 rows = max(c[1] for c in cells) + 1
 w, h = cols * CELL_W, rows * CELL_H
 dots = "".join(

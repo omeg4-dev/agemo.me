@@ -46,7 +46,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
     <div class="ff__panel" data-uses>
       {site.machine.map((section, si) => (
-        <section class="ff__block" style={`--c: ${section.colour}; --i: ${si}`}>
+        <section class="ff__block" style={`--c: ${section.colour}`}>
           <h3 class="ff__title">
             <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${section.icon}`} /></svg>
             <span>{section.name}</span>
@@ -70,7 +70,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
       ))}
 
       <ul class="ff__swatches" aria-hidden="true">
-        {site.swatches.map((c) => <li style={`--s: ${c}`}></li>)}
+        {site.swatches.map((c, i) => <li style={`--s: ${c}; --i: ${i}`}></li>)}
       </ul>
     </div>
   </div>
@@ -97,15 +97,24 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
   }
 
   .machine__sprite { position: absolute; }
-  /* One stroke style for the whole set, set here rather than on 19 symbols. */
-  .machine__sprite g {
+  /* One stroke style for the whole set, set here rather than on 19 symbols --
+     but it MUST hang off .ff__icon, not off .machine__sprite. <use> clones the
+     <g> into its own shadow tree, whose ancestor chain runs up through the
+     .ff__icon <svg>, never through the sprite. A `.machine__sprite g` rule
+     styles only the hidden original: the clones fall back to the initial
+     `fill: black; stroke: none` and paint as solid silhouettes on a near-black
+     panel. fill and stroke are inherited properties, so setting them here
+     reaches the clone. */
+  .ff__icon {
+    width: 1em;
+    height: 1em;
+    flex: none;
     fill: none;
     stroke: currentColor;
     stroke-width: 1.6;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  .ff__icon { width: 1em; height: 1em; flex: none; }
 
   .ff {
     display: grid;
@@ -118,10 +127,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     background:
       linear-gradient(160deg, color-mix(in oklab, var(--accent) 4%, var(--surface)), var(--surface) 55%);
   }
-  @media (min-width: 900px) {
-    .ff { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
-    .ff__logo :global(svg) { max-width: 100%; }
-  }
+  @media (min-width: 900px) { .ff { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
 
   .ff__logo { display: flex; justify-content: center; }
   .ff__logo :global(svg) {
@@ -134,6 +140,12 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     /* The dots pulse as one, so the Ω reads as lit rather than printed. */
     animation: logo-breathe 6s var(--ease) infinite alternate;
   }
+  /* Below the base rule on purpose. Same specificity, so source order is the
+     only thing deciding it -- written above, the cap wins at every width and
+     the logo never fills its desktop column. */
+  @media (min-width: 900px) {
+    .ff__logo :global(svg) { max-width: 100%; }
+  }
   @keyframes logo-breathe {
     from { opacity: 0.7; filter: drop-shadow(0 0 0 transparent); }
     to   { opacity: 1;   filter: drop-shadow(0 0 8px color-mix(in oklab, var(--accent-2) 40%, transparent)); }
@@ -141,7 +153,10 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
   .ff__panel {
     font-family: var(--font-mono);
-    font-size: clamp(0.66rem, 1.15vw, 0.78rem);
+    /* The floor is 12px, not 0.66rem: 1.15vw only clears that floor above
+       ~918px, so anything smaller would put real content -- kernel, CPU,
+       disks -- at 10.5px monospace on every phone. */
+    font-size: clamp(0.75rem, 1.15vw, 0.78rem);
     line-height: 1.75;
     min-width: 0;
   }
@@ -211,16 +226,30 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     overflow-wrap: anywhere;
   }
 
-  /* ╰──────────── */
+  /* ╰──────────── — built the same way the header is: a rounded corner plus a
+     separate fading run. The corner cannot carry the fade itself, because a
+     border-image is not affected by border-radius (CSS Backgrounds 3), so the
+     earlier single-element version computed a 5px radius that was never
+     honoured and closed the bracket with a hard right angle while ╭ stayed
+     round. */
   .ff__close {
-    height: 0.85em;
+    display: flex;
+    align-items: flex-end;
+  }
+  .ff__close::before {
+    content: '';
+    width: 0.9em;
+    height: 0.9em;
+    flex: none;
     border-left: 1px solid var(--c);
     border-bottom: 1px solid var(--c);
     border-bottom-left-radius: 5px;
-    /* The bottom border fades out the way the printed run of dashes does. */
-    border-image: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 5%, transparent)) 1;
-    border-top: 0;
-    border-right: 0;
+  }
+  .ff__close::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 5%, transparent));
   }
 
   .ff__swatches {
@@ -237,14 +266,9 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     background: var(--s);
     animation: swatch-pop 4.5s var(--ease) infinite;
   }
-  .ff__swatches li:nth-child(1) { animation-delay: 0ms; }
-  .ff__swatches li:nth-child(2) { animation-delay: 110ms; }
-  .ff__swatches li:nth-child(3) { animation-delay: 220ms; }
-  .ff__swatches li:nth-child(4) { animation-delay: 330ms; }
-  .ff__swatches li:nth-child(5) { animation-delay: 440ms; }
-  .ff__swatches li:nth-child(6) { animation-delay: 550ms; }
-  .ff__swatches li:nth-child(7) { animation-delay: 660ms; }
-  .ff__swatches li:nth-child(8) { animation-delay: 770ms; }
+  /* Delay comes from the index the template already knows, so the row still
+     lights in reading order if site.swatches ever grows past eight. */
+  .ff__swatches li { animation-delay: calc(var(--i) * 110ms); }
   @keyframes swatch-pop {
     0%, 82%, 100% { transform: scale(1);    opacity: 0.75; }
     88%           { transform: scale(1.45); opacity: 1; }
