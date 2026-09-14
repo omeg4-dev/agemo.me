@@ -1,6 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-import Ambient from '../components/Ambient.astro';
 import Nav from '../components/Nav.astro';
 import Hero from '../components/Hero.astro';
 import IdentityStrip from '../components/IdentityStrip.astro';
@@ -11,7 +10,6 @@ import Footer from '../components/Footer.astro';
 import site from '../config/site.mjs';
 ---
 <Base title="Omega ⟷ agemO" description={site.tagline}>
-  <Ambient />
   <Nav here="home" />
   <Hero />
   <main>
@@ -22,3 +20,8 @@ import site from '../config/site.mjs';
   </main>
   <Footer />
 </Base>
+
+<script>
+  import { initScroll } from '../scripts/scroll.js';
+  initScroll();
+</script>

@@ -2,103 +2,145 @@
 import site from '../config/site.mjs';
 
 const targets = [
-  { label: 'Discord', href: site.links.discord, sub: 'talk to me' },
-  { label: 'GitHub',  href: site.links.github,  sub: 'read the source' },
+  { label: 'Discord', href: site.links.discord, host: '→ discord.com' },
+  { label: 'GitHub', href: site.links.github, host: '→ github.com' },
 ];
 ---
 <section class="reach" aria-labelledby="reach-heading" data-reach data-reveal>
-  <h2 class="visually-hidden" id="reach-heading">Reach</h2>
+  <div class="reach__rule" aria-hidden="true"></div>
+  <header class="reach__head">
+    <p class="section-label">reach</p>
+    <h2 class="section-heading" id="reach-heading">Reach</h2>
+  </header>
 
-  {targets.map((t) => (
-    <a class="reach__target" href={t.href} target="_blank" rel="noopener noreferrer">
-      <span class="reach__label">{t.label}</span>
-      <span class="reach__sub">{t.sub}</span>
-      <span class="reach__mirror" aria-hidden="true">{t.label}</span>
-      <span class="reach__wash" aria-hidden="true"></span>
-    </a>
-  ))}
+  <div class="reach__links">
+    {targets.map((t) => (
+      <a class="reach__target" href={t.href} target="_blank" rel="noopener noreferrer">
+        <span class="reach__word">
+          {t.label}
+          <span class="reach__line" aria-hidden="true"></span>
+        </span>
+        <span class="reach__host">{t.host}</span>
+      </a>
+    ))}
+  </div>
 </section>
 
 <style>
   .reach {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 1fr;
-    max-width: 1180px;
+    max-width: 1200px;
     margin-inline: auto;
-    padding: clamp(3rem, 10vh, 7rem) var(--gutter);
+    padding: clamp(5rem, 12vw, 10rem) var(--gutter) 0;
+    display: grid;
+    gap: clamp(2.5rem, 6vh, 4rem);
   }
-  @media (min-width: 720px) { .reach { grid-template-columns: 1fr 1fr; } }
+
+  .reach__rule {
+    width: 100%;
+    height: 1px;
+    background: var(--hairline);
+    margin-bottom: clamp(1rem, 3vh, 2rem);
+  }
+
+  .reach__head {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-stretch: 62%;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: clamp(2.25rem, 7vw, 5.5rem);
+    letter-spacing: -0.01em;
+    line-height: 0.9;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .reach__links {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.5rem, 4vh, 3rem);
+  }
 
   .reach__target {
-    position: relative;
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 0.35rem;
-    padding: clamp(2rem, 5vw, 3.4rem);
-    background: var(--surface);
-    border: 1px solid color-mix(in oklab, var(--muted) 22%, transparent);
-    border-radius: 14px;
-    color: inherit;
     text-decoration: none;
+    color: inherit;
+    min-height: 44px;
+    padding-block: 0.5rem;
+  }
+
+  @media (min-width: 720px) {
+    .reach__target {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 2rem;
+    }
+  }
+
+  .reach__word {
+    position: relative;
+    display: inline-block;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-stretch: 62%;
+    font-size: clamp(2.5rem, 9vw, 7rem);
+    line-height: 0.9;
+    text-transform: uppercase;
+    color: var(--ink);
     overflow: hidden;
-    transition: border-color var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
-  }
-  .reach__target:hover, .reach__target:focus-visible {
-    border-color: var(--accent);
-    transform: translateY(-4px);
   }
 
-  .reach__label {
-    position: relative;
-    z-index: 1;
-    font-family: var(--font-display);
-    font-size: clamp(1.8rem, 4.5vw, 3rem);
-  }
-  .reach__sub {
-    position: relative;
-    z-index: 1;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-  }
-
-  /* A tide coming in from the bottom of the card on hover. overflow:hidden on
-     the target is what keeps it inside the rounded corners. */
-  .reach__wash {
+  .reach__line {
     position: absolute;
-    inset: auto 0 0 0;
-    height: 140%;
-    background: radial-gradient(120% 100% at 50% 130%,
-      color-mix(in oklab, var(--accent) 26%, transparent), transparent 70%);
-    transform: translateY(60%);
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background: var(--signal);
+    transform: translateX(-4px);
     opacity: 0;
-    transition: transform var(--dur-3) var(--ease), opacity var(--dur-2) var(--ease);
+    pointer-events: none;
+    transition: transform var(--dur-2) var(--ease), opacity var(--dur-1) var(--ease);
   }
-  .reach__target:hover .reach__wash, .reach__target:focus-visible .reach__wash {
-    transform: translateY(0);
+
+  .reach__target:hover .reach__line,
+  .reach__target:focus-visible .reach__line {
     opacity: 1;
+    transform: translateX(calc(100% + 4px));
   }
 
-  .reach__mirror {
-    position: absolute;
-    left: clamp(2rem, 5vw, 3.4rem);
-    bottom: -0.65em;
-    z-index: 1;
-    font-family: var(--font-display);
-    font-size: clamp(1.8rem, 4.5vw, 3rem);
-    color: var(--accent);
-    transform: scaleY(-1);
-    opacity: 0;
-    -webkit-mask-image: linear-gradient(to top, transparent, #000);
-    mask-image: linear-gradient(to top, transparent, #000);
-    transition: opacity var(--dur-2) var(--ease);
+  .reach__host {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    color: var(--graphite);
+    transition: color var(--dur-1) var(--ease);
   }
-  .reach__target:hover .reach__mirror, .reach__target:focus-visible .reach__mirror { opacity: 0.45; }
+
+  .reach__target:hover .reach__host,
+  .reach__target:focus-visible .reach__host {
+    color: var(--ink);
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .reach__mirror { display: none; }
-    .reach__target:hover, .reach__target:focus-visible { transform: none; }
-    .reach__wash { transition: opacity var(--dur-2) var(--ease); transform: translateY(0); }
+    .reach__line {
+      display: none;
+    }
   }
 </style>

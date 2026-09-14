@@ -1,91 +1,112 @@
 ---
+import site from '../config/site.mjs';
+
 const { here } = Astro.props;
 
 const items = [
-  { label: 'work',  href: '/#work' },
-  { label: 'links', href: '/links' },
+  { label: 'home', href: '/', current: here === 'home', external: false },
+  { label: 'links', href: '/links', current: here === 'links', external: false },
+  { label: 'github', href: site.links.github, current: false, external: true },
 ];
 ---
 <nav class="nav" aria-label="Primary">
-  <a class="nav__home" href="/" aria-current={here === 'home' ? 'page' : undefined}>agemo</a>
-  <ul class="nav__list">
-    {items.map((i) => (
-      <li>
-        <a
-          class="nav__link"
-          href={i.href}
-          aria-current={here === i.label ? 'page' : undefined}
-        >{i.label}</a>
-      </li>
-    ))}
-  </ul>
+  <div class="nav__inner">
+    <a class="nav__home" href="/" aria-current={here === 'home' ? 'page' : undefined}>omega</a>
+    <ul class="nav__list">
+      {items.map((i) => (
+        <li>
+          <a
+            class="nav__link"
+            href={i.href}
+            aria-current={i.current ? 'page' : undefined}
+            target={i.external ? '_blank' : undefined}
+            rel={i.external ? 'noopener noreferrer' : undefined}
+          >{i.label}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
 </nav>
 
 <style>
-  /* Fixed, above the ambient layer (z-index 0) and the grain (z-index 2). */
   .nav {
-    position: fixed;
-    inset: 0 0 auto 0;
-    z-index: 5;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+    padding: 0.6rem var(--gutter);
+  }
+
+  .nav__inner {
+    max-width: 1200px;
+    margin-inline: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.9rem var(--gutter);
     font-family: var(--font-mono);
-    font-size: 0.74rem;
-    letter-spacing: 0.16em;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
     text-transform: lowercase;
-    /* No background plate: the bar would cut a hard line across the ambient
-       field. A short gradient scrim keeps the labels legible over anything
-       that drifts underneath without drawing an edge. */
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--bg) 82%, transparent), transparent);
-    backdrop-filter: blur(2px);
   }
 
-  .nav__list { display: flex; align-items: center; gap: 0.75rem; list-style: none; margin: 0; padding: 0; }
+  .nav__list {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
 
   .nav__home, .nav__link {
     position: relative;
-    color: var(--muted);
+    color: var(--graphite);
     text-decoration: none;
     transition: color var(--dur-1) var(--ease);
-    /* A 15px-tall tap target is a miss on a phone. The padding brings every
-       nav item to the 44px minimum; the negative margin keeps the bar the
-       same height it was, so this buys the hit area without moving anything
-       visually. min-height rather than height so a wrapped label still grows. */
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-    padding-inline: 0.35rem;
-    margin-block: -0.9rem;
+    padding-inline: 0.5rem;
+    margin-block: -0.5rem;
   }
-  .nav__home { color: var(--text); letter-spacing: 0.3em; }
-  .nav__home:hover, .nav__link:hover, .nav__link:focus-visible { color: var(--accent); }
 
-  /* The underline is drawn from the centre out, so it reads as the link
-     surfacing rather than as a border being switched on. */
+  .nav__home {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .nav__home:hover, .nav__link:hover, .nav__link:focus-visible {
+    color: var(--ink);
+  }
+
   .nav__link::after {
     content: '';
     position: absolute;
-    /* The link box is now 44px tall for the tap target, so the underline is
-       hung off the vertical centre rather than off the box's bottom edge --
-       otherwise it drifts a long way below the label. Inset matches the
-       padding so it underlines the text, not the hit area. */
-    left: 0.35rem; right: 0.35rem;
-    bottom: 50%; margin-bottom: -0.85em;
-    height: 1px;
-    background: var(--accent);
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 50%;
+    margin-bottom: -0.85em;
+    height: 2px;
+    background: var(--signal);
     transform: scaleX(0);
     transition: transform var(--dur-2) var(--ease);
   }
+
   .nav__link:hover::after,
   .nav__link:focus-visible::after,
-  .nav__link[aria-current='page']::after { transform: scaleX(1); }
-  .nav__link[aria-current='page'] { color: var(--accent); }
+  .nav__link[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  .nav__link[aria-current='page'] {
+    color: var(--ink);
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .nav__link::after { transition: none; }
+    .nav__link::after {
+      transition: none;
+    }
   }
 </style>

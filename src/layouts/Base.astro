@@ -13,43 +13,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!--
-      Post-commit finding (Task 8 ledger): this used to be a synchronous,
-      inline `classList.add('js')` here in <head>. That closed the no-JS
-      trap but opened a narrower one — the flip ran unconditionally
-      whenever JS was merely *enabled*, regardless of whether scroll.js
-      (the module that actually owns [data-reveal]/data-revealed) ever
-      loaded or executed. If scroll.js 404'd, was blocked, or threw before
-      running, `html.js` still landed, [data-reveal] content and the
-      tagline still went to their clipped starting state via base.css /
-      IdentityStrip.astro, and nothing was left to ever set
-      `data-revealed` — permanently invisible content, same failure class,
-      narrower trigger. Fixed by having scroll.js itself add the `js`
-      class as the first thing initScroll() does (see scroll.js). That
-      makes the hidden starting state conditional on the SAME script that
-      is responsible for ending it: if scroll.js never runs, the class
-      never appears, and base.css's visible-by-default rule is the only
-      state that ever applies — identical to the no-JS path already
-      proven safe. No inline bootstrap script needed any more.
-    -->
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0B0D0F" />
+    <meta name="theme-color" content="#E9ECEF" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <link rel="canonical" href={canonical} />
-    <!-- The SVG is the real icon and scales to every size; .ico is the
-         fallback for browsers that ignore it. The order matters: browsers
-         that understand SVG take the first match, older ones fall through.
-         The ⟷ in the title is safe here even though it is outside the font
-         subset — a tab title is drawn by the browser chrome in a system
-         font, never by the page's webfonts. -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="preload" href="/fonts/instrument-serif.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/plex-mono.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/anybody.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <slot />
@@ -58,15 +33,22 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
 
 <style is:global>
   @font-face {
-    font-family: 'Instrument Serif';
-    src: url('/fonts/instrument-serif.woff2') format('woff2');
-    font-weight: 400;
+    font-family: 'Anybody';
+    src: url('/fonts/anybody.woff2') format('woff2');
+    font-weight: 100 900;
+    font-stretch: 50% 150%;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    src: url('/fonts/hanken-grotesk.woff2') format('woff2');
+    font-weight: 100 900;
     font-display: swap;
   }
   @font-face {
     font-family: 'IBM Plex Mono';
     src: url('/fonts/plex-mono.woff2') format('woff2');
-    font-weight: 400;
+    font-weight: 400 700;
     font-display: swap;
   }
 </style>

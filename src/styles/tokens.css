@@ -1,24 +1,23 @@
 :root {
-  /* palette — spec §6.2 */
-  --bg: #0B0D0F;
-  --surface: #14181C;
-  --text: #E6EAEE;
-  --muted: #8B97A5;
-  --accent: #33B1FF;
-  --accent-2: #78A9FF;
-  --live: #FF7EB6;
+  --paper:    #E9ECEF;  /* page ground, cool mercury */
+  --paper-2:  #DDE2E6;  /* raised surfaces, row hover */
+  --ink:      #0E1A24;  /* primary text */
+  --graphite: #4F5A65;  /* secondary text (must pass 4.5:1 on --paper and --paper-2) */
+  --hairline: #C3CAD1;  /* rules, borders */
+  --signal:   #D63A7F;  /* the mirror line, live dot, focus ring. Not for body text. */
+  --screen:   #161616;  /* the Machine panel ground (Oxocarbon) */
+  --screen-text: #DDE1E6;
 
-  /* type — spec §6.1 */
-  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-display: 'Anybody', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* motion — one easing, one duration scale (spec §6.3) */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --dur-1: 160ms;
-  --dur-2: 420ms;
-  --dur-3: 900ms;
-
-  /* layout */
-  --measure: 68ch;
-  --gutter: clamp(1.25rem, 4vw, 4rem);
+  --dur-1: 160ms; --dur-2: 420ms; --dur-3: 900ms;
+  --measure: 62ch;
+  --gutter: clamp(1rem, 4vw, 4rem);
 }
+@media (prefers-color-scheme: dark) { :root {
+  --paper: #11161B; --paper-2: #1A2027; --ink: #E6EAEE; --graphite: #9AA5B0;
+  --hairline: #2B333B; --signal: #FF7EB6; --screen: #0B0E11; --screen-text: #DDE1E6;
+}}

@@ -1,0 +1,108 @@
+---
+const {
+  word = 'OMEGA',
+  ariaLabel = word === 'OMEGA' ? 'Omega' : word,
+  as: Tag = 'h1',
+  variant = 'hero',
+  cssWidth = word === '404' ? '2.03em' : '3.9em',
+} = Astro.props;
+---
+<div class={`mirror mirror--${variant}`} data-mirror style={`--w: ${cssWidth};`}>
+  <Tag class="mirror__h1" aria-label={ariaLabel}>
+    <span class="mirror__word">{word}</span>
+  </Tag>
+  <span class="mirror__image" aria-hidden="true">{word}</span>
+  <span class="mirror__line" aria-hidden="true"></span>
+</div>
+
+<style>
+  .mirror {
+    --x: var(--w);
+    position: relative;
+    display: inline-block;
+    width: calc(var(--w) * 2);
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-stretch: 100%;
+    text-transform: uppercase;
+    line-height: 0.85;
+    color: var(--ink);
+    user-select: none;
+  }
+
+  .mirror--hero {
+    font-size: clamp(3rem, 9.2vw, 12rem);
+  }
+
+  @media (max-width: 600px) {
+    .mirror--hero {
+      /* Shrink font-size so 2 × word width ≤ 100vw − 2×gutter at 320px */
+      font-size: clamp(1.85rem, 11vw, 3rem);
+    }
+  }
+
+  .mirror--small {
+    font-size: clamp(2.5rem, 10vw, 6rem);
+  }
+
+  @media (max-width: 600px) {
+    .mirror--small {
+      font-size: clamp(2rem, 9vw, 3.5rem);
+    }
+  }
+
+  .mirror__h1 {
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+    font: inherit;
+    line-height: inherit;
+    color: inherit;
+    font-weight: inherit;
+    font-stretch: inherit;
+  }
+
+  .mirror__word {
+    display: inline-block;
+    width: var(--w);
+    white-space: nowrap;
+    clip-path: inset(0 calc(100% - var(--x)) 0 0);
+  }
+
+  .mirror__image {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--w);
+    white-space: nowrap;
+    transform-origin: 0 50%;
+    transform: translateX(calc(var(--x) * 2)) scaleX(-1);
+    clip-path: inset(0 calc(100% - var(--x)) 0 0);
+    color: var(--ink);
+    opacity: 0.9;
+    background: linear-gradient(90deg, currentColor, color-mix(in srgb, currentColor 55%, var(--paper)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    pointer-events: none;
+  }
+
+  @supports not (background-clip: text) {
+    .mirror__image {
+      background: none;
+      -webkit-text-fill-color: initial;
+      color: var(--ink);
+    }
+  }
+
+  .mirror__line {
+    position: absolute;
+    left: 0;
+    top: -0.15em;
+    bottom: -0.15em;
+    width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--signal) 15%, var(--signal) 85%, transparent);
+    transform: translateX(var(--x));
+    pointer-events: none;
+  }
+</style>

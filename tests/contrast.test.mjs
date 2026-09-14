@@ -11,7 +11,7 @@ function stripComments(source) {
 function token(name, source = css) {
   const stripped = stripComments(source);
   const m = stripped.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
-  assert.ok(m, `token --${name} not found in tokens.css`);
+  assert.ok(m, `token --${name} not found in source block`);
   return m[1];
 }
 
@@ -32,24 +32,32 @@ function ratio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-test('body text meets AA (4.5:1) on both grounds', () => {
-  assert.ok(ratio(token('text'), token('bg')) >= 4.5);
-  assert.ok(ratio(token('text'), token('surface')) >= 4.5);
+const [lightCss, darkCss] = css.split('@media');
+assert.ok(lightCss && darkCss, 'expected light :root and @media dark blocks in tokens.css');
+
+test('light theme text meets AA (4.5:1) on both paper grounds', () => {
+  assert.ok(ratio(token('ink', lightCss), token('paper', lightCss)) >= 4.5, 'ink on paper');
+  assert.ok(ratio(token('ink', lightCss), token('paper-2', lightCss)) >= 4.5, 'ink on paper-2');
+  assert.ok(ratio(token('graphite', lightCss), token('paper', lightCss)) >= 4.5, 'graphite on paper');
+  assert.ok(ratio(token('graphite', lightCss), token('paper-2', lightCss)) >= 4.5, 'graphite on paper-2');
 });
 
-test('muted text meets AA (4.5:1) on both grounds', () => {
-  assert.ok(ratio(token('muted'), token('bg')) >= 4.5);
-  assert.ok(ratio(token('muted'), token('surface')) >= 4.5);
+test('light theme screen text meets AA (4.5:1) on screen ground', () => {
+  assert.ok(ratio(token('screen-text', lightCss), token('screen', lightCss)) >= 4.5, 'screen-text on screen');
 });
 
-test('accent colours meet large-text AA (3:1) on both grounds', () => {
-  for (const t of ['accent', 'accent-2', 'live']) {
-    assert.ok(ratio(token(t), token('bg')) >= 3, `--${t} on --bg`);
-    assert.ok(ratio(token(t), token('surface')) >= 3, `--${t} on --surface`);
-  }
+test('dark theme text meets AA (4.5:1) on both paper grounds', () => {
+  assert.ok(ratio(token('ink', darkCss), token('paper', darkCss)) >= 4.5, 'dark ink on paper');
+  assert.ok(ratio(token('ink', darkCss), token('paper-2', darkCss)) >= 4.5, 'dark ink on paper-2');
+  assert.ok(ratio(token('graphite', darkCss), token('paper', darkCss)) >= 4.5, 'dark graphite on paper');
+  assert.ok(ratio(token('graphite', darkCss), token('paper-2', darkCss)) >= 4.5, 'dark graphite on paper-2');
+});
+
+test('dark theme screen text meets AA (4.5:1) on screen ground', () => {
+  assert.ok(ratio(token('screen-text', darkCss), token('screen', darkCss)) >= 4.5, 'dark screen-text on screen');
 });
 
 test('a commented-out token is not accepted', () => {
-  const fixture = `:root {\n  /* --bg: #0B0D0F; */\n}`;
-  assert.throws(() => token('bg', fixture));
+  const fixture = `:root {\n  /* --paper: #E9ECEF; */\n}`;
+  assert.throws(() => token('paper', fixture));
 });

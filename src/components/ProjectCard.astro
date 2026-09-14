@@ -1,271 +1,116 @@
 ---
-import { relativeAge } from '../../scripts/repos-transform.mjs';
-
-const { repo, index = 0 } = Astro.props;
-const age = relativeAge(repo.pushedAt);
-const ordinal = String(index + 1).padStart(2, '0');
-// The band is a marquee: the strip must be at least twice the slab's width so
-// that translating it by exactly -50% lands on an identical frame. Eight
-// copies clears that at any realistic name length and viewport.
-const band = Array.from({ length: 8 }, () => repo.name);
+const { repo } = Astro.props;
+const dateStr = repo.pushedAt ? repo.pushedAt.slice(0, 7) : '';
 ---
-<!--
-  Two nested boxes on purpose. base.css's reveal rule is `html.js [data-reveal]
-  { transform: translateY(...) }` and its revealed state is `transform: none` —
-  both more specific than a plain `.slab` class selector. Putting the reveal
-  and the 3D tilt on the SAME element therefore lets the reveal silently win
-  and the tilt never render at all. The outer box owns the reveal, the inner
-  box owns the tilt, and neither can clobber the other.
--->
-<article
-  class="slab-wrap"
+<a
+  class="repo-row"
+  href={repo.url}
+  target="_blank"
+  rel="noopener noreferrer"
   data-project
-  data-reveal
-  style={`--repo-accent: ${repo.accent}; --i: ${index}`}
+  style={`--repo-accent: ${repo.accent};`}
 >
- <div class="slab" data-slab data-side={index % 2 === 0 ? 'left' : 'right'}>
-  <span class="slab__ordinal" aria-hidden="true">{ordinal}</span>
-
-  <a class="slab__hit" href={repo.url} target="_blank" rel="noopener noreferrer">
-    <h3 class="slab__name" data-project-name data-scramble>{repo.name}</h3>
-    {repo.description && <p class="slab__desc">{repo.description}</p>}
-
-    <dl class="slab__meta">
-      {repo.language && (
-        <div><dt class="visually-hidden">Language</dt><dd data-project-lang>{repo.language}</dd></div>
-      )}
-      <div><dt class="visually-hidden">Last commit</dt><dd data-project-age>{age}</dd></div>
-    </dl>
-  </a>
-
-  <!-- The moving band. Decorative repetition of the name; the readable one is
-       the <h3> above, so this is aria-hidden rather than duplicated to AT. -->
-  <div class="slab__band" aria-hidden="true">
-    <span class="slab__band-run">{band.map((n) => <i>{n}</i>)}</span>
+  <span class="repo-row__bar" aria-hidden="true"></span>
+  <h3 class="repo-row__name" data-project-name>{repo.name}</h3>
+  <p class="repo-row__desc">{repo.description}</p>
+  <div class="repo-row__meta">
+    {repo.language && <span class="repo-row__lang" data-project-lang>{repo.language}</span>}
+    <time class="repo-row__date" data-project-age datetime={repo.pushedAt}>{dateStr}</time>
   </div>
-
-  <!-- Pointer specular. cards.js writes --mx/--my; with no JS both fall back
-       to the 50% initial values below and this is a static centred bloom. -->
-  <span class="slab__spot" aria-hidden="true"></span>
-  <span class="slab__ring" aria-hidden="true"></span>
-
-  <!-- Spec §5.3: inverted reflection showing the README's opening line,
-       falling back to the description when no README was reachable. -->
-  <div class="slab__reflection" aria-hidden="true">
-    {repo.readmeLine || repo.description || repo.name}
-  </div>
- </div>
-</article>
+</a>
 
 <style>
-  @property --spin {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
-  }
-
-  .slab-wrap {
-    /* Staggered reveal: each slab surfaces a beat after the one above it.
-       Capped so a long list never leaves the last card waiting seconds. */
-    transition-delay: calc(min(var(--i, 0), 5) * 90ms) !important;
-  }
-
-  .slab {
-    --mx: 50%;
-    --my: 50%;
-    --rx: 0deg;
-    --ry: 0deg;
+  .repo-row {
     position: relative;
-    border-radius: 18px;
-    background:
-      linear-gradient(
-        160deg,
-        color-mix(in oklab, var(--repo-accent) 7%, var(--surface)),
-        var(--surface) 60%);
-    border: 1px solid color-mix(in oklab, var(--muted) 20%, transparent);
-    transform: perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));
-    transition:
-      transform var(--dur-2) var(--ease),
-      border-color var(--dur-2) var(--ease),
-      box-shadow var(--dur-2) var(--ease);
-  }
-  /* While the pointer is inside, cards.js is writing --rx/--ry every frame;
-     a transition on top of that would lag the pointer by a whole duration.
-     The transition exists for the spring back on pointerleave, so it is
-     suppressed only for the duration of the hover. */
-  .slab:hover { transition: border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
-
-  .slab:hover, .slab:focus-within {
-    border-color: color-mix(in oklab, var(--repo-accent) 55%, transparent);
-    box-shadow:
-      0 30px 70px -40px color-mix(in oklab, var(--repo-accent) 85%, transparent),
-      0 0 0 1px color-mix(in oklab, var(--repo-accent) 22%, transparent);
-  }
-
-  .slab__hit {
-    position: relative;
-    z-index: 2;
     display: grid;
-    gap: 0.85rem;
-    padding: clamp(1.7rem, 4vw, 3.2rem);
-    padding-bottom: clamp(2.6rem, 5vw, 4rem);
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding-block: 1.75rem;
+    padding-inline: 1.25rem 0.75rem;
+    border-top: 1px solid var(--hairline);
     color: inherit;
     text-decoration: none;
-  }
-  .slab[data-side='right'] .slab__hit { text-align: right; justify-items: end; }
-
-  /* The ordinal. Outline only, so it reads as a printed folio mark rather
-     than competing with the name for weight. */
-  .slab__ordinal {
-    position: absolute;
-    top: clamp(0.6rem, 2vw, 1.4rem);
-    right: clamp(1rem, 3vw, 2.2rem);
-    z-index: 1;
-    font-family: var(--font-display);
-    font-size: clamp(4rem, 11vw, 9rem);
-    line-height: 1;
-    color: transparent;
-    -webkit-text-stroke: 1px color-mix(in oklab, var(--repo-accent) 32%, transparent);
-    pointer-events: none;
-    animation: ordinal-float 11s var(--ease) infinite alternate;
-  }
-  .slab[data-side='right'] .slab__ordinal { right: auto; left: clamp(1rem, 3vw, 2.2rem); }
-
-  @keyframes ordinal-float {
-    from { transform: translateY(0) rotate(-1.5deg); opacity: 0.55; }
-    to   { transform: translateY(-10px) rotate(1.5deg); opacity: 1; }
+    transition: background-color var(--dur-1) var(--ease);
   }
 
-  .slab__name {
-    font-family: var(--font-mono);
-    font-size: clamp(1.1rem, 2.2vw, 1.5rem);
-    font-weight: 400;
-    letter-spacing: 0.01em;
-    color: var(--repo-accent);
-    /* The scramble swaps in wider glyphs mid-run; without a reserved box the
-       line reflows on every frame and drags the description with it. */
-    min-height: 1.4em;
+  .repo-row:last-child {
+    border-bottom: 1px solid var(--hairline);
   }
 
-  .slab__desc {
-    font-family: var(--font-display);
-    font-size: clamp(1.35rem, 3.2vw, 2.4rem);
-    line-height: 1.22;
-    max-width: 20ch;
-    color: var(--text);
-    text-wrap: pretty;
+  @media (min-width: 900px) {
+    .repo-row {
+      grid-template-columns: 5fr 5fr 2fr;
+      gap: 2rem;
+      align-items: baseline;
+    }
   }
 
-  .slab__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.9rem;
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .slab[data-side='right'] .slab__meta { justify-content: flex-end; }
-  .slab__meta div { display: contents; }
-  .slab__meta dd { margin: 0; }
-
-  .slab__band {
+  .repo-row__bar {
     position: absolute;
     left: 0;
-    right: 0;
-    bottom: 0.7rem;
-    z-index: 1;
-    overflow: hidden;
-    pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--repo-accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform var(--dur-2) var(--ease);
   }
-  .slab__band-run {
+
+  .repo-row:hover,
+  .repo-row:focus-visible {
+    background: var(--paper-2);
+  }
+
+  .repo-row:hover .repo-row__bar,
+  .repo-row:focus-visible .repo-row__bar {
+    transform: scaleY(1);
+  }
+
+  .repo-row__name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-stretch: 75%;
+    font-size: clamp(1.6rem, 3.5vw, 2.75rem);
+    line-height: 1.1;
+    color: var(--ink);
+    margin: 0;
+    transition: transform var(--dur-2) var(--ease);
+  }
+
+  .repo-row:hover .repo-row__name,
+  .repo-row:focus-visible .repo-row__name {
+    transform: translateX(0.5rem);
+  }
+
+  .repo-row__desc {
+    font-family: var(--font-body);
+    color: var(--graphite);
+    font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .repo-row__meta {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: var(--graphite);
     display: flex;
-    width: max-content;
-    gap: 1.6rem;
-    padding-right: 1.6rem;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.34em;
-    text-transform: uppercase;
-    color: color-mix(in oklab, var(--repo-accent) 40%, transparent);
-    animation: band-run 22s linear infinite;
+    gap: 1.25rem;
+    align-items: baseline;
   }
-  .slab__band-run i { font-style: normal; }
-  .slab:hover .slab__band-run { animation-duration: 7s; }
-  /* -50% is exact only because the run is an even number of identical
-     copies with matching gaps — see the `band` array above. */
-  @keyframes band-run { to { transform: translateX(-50%); } }
 
-  .slab__spot, .slab__ring {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity var(--dur-2) var(--ease);
+  @media (min-width: 900px) {
+    .repo-row__meta {
+      justify-content: flex-end;
+    }
   }
-  .slab__spot {
-    background: radial-gradient(
-      420px circle at var(--mx) var(--my),
-      color-mix(in oklab, var(--repo-accent) 20%, transparent),
-      transparent 68%);
-  }
-  .slab:hover .slab__spot, .slab:focus-within .slab__spot { opacity: 1; }
-
-  /* Gradient border. The padding-box / border-box mask difference leaves
-     exactly the 1px frame, which is why the slab does not need a second
-     element or a real border colour animation. */
-  .slab__ring {
-    inset: -1px;
-    padding: 1px;
-    background: conic-gradient(
-      from var(--spin),
-      transparent 0deg 190deg,
-      var(--repo-accent) 300deg,
-      transparent 360deg);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    mask-composite: exclude;
-  }
-  .slab:hover .slab__ring, .slab:focus-within .slab__ring {
-    opacity: 1;
-    animation: ring-spin 2.6s linear infinite;
-  }
-  @keyframes ring-spin { to { --spin: 360deg; } }
-
-  /* Hover reflection — spec §5.3 */
-  .slab__reflection {
-    position: absolute;
-    /* Clear of the marquee band, which sits 0.7rem up from the slab's inside
-       edge — at a flat 100% the reflection landed on top of it. */
-    inset: calc(100% + 0.4rem) clamp(1.7rem, 4vw, 3.2rem) auto;
-    /* No transform-origin. scaleY(-1) about `top` maps the box to [-h, 0] —
-       it renders ABOVE its own top edge, i.e. straight back over the thing it
-       is meant to reflect. The default 50% 50% origin flips in place, so the
-       reflection stays in the box, and the box is placed below. */
-    transform: scaleY(-1);
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--repo-accent);
-    opacity: 0;
-    pointer-events: none;
-    -webkit-mask-image: linear-gradient(to top, transparent, #000);
-    mask-image: linear-gradient(to top, transparent, #000);
-    transition: opacity var(--dur-2) var(--ease);
-  }
-  .slab[data-side='right'] .slab__reflection { text-align: right; }
-  .slab:hover .slab__reflection, .slab:focus-within .slab__reflection { opacity: 0.45; }
 
   @media (prefers-reduced-motion: reduce) {
-    .slab, .slab__ordinal, .slab__band-run { animation: none !important; transform: none !important; }
-    .slab__reflection { display: none; }
-    /* Colour and shadow still change on hover, so the affordance survives;
-       only the moving parts go. */
-    .slab__ring { display: none; }
+    .repo-row__bar,
+    .repo-row__name {
+      transition: none !important;
+    }
   }
 </style>

@@ -1,22 +1,15 @@
 ---
 import site from '../config/site.mjs';
 
-// The dot-matrix Ω, generated from ~/.config/fastfetch/logo.ansi by
-// scripts/gen-omega-logo.py. Inlined rather than <img>-ed so it inherits the
-// page's own rendering and costs no request.
 const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 ---
 <section class="machine" aria-labelledby="machine-heading" data-reveal>
-  <h2 class="machine__heading" id="machine-heading">The machine</h2>
+  <div class="machine__rule" aria-hidden="true"></div>
+  <header class="machine__head">
+    <p class="section-label">machine</p>
+    <h2 class="section-heading" id="machine-heading">The machine</h2>
+  </header>
 
-  <!--
-    The real thing prints its frame with box-drawing characters (╭ │ ╰ ─) and
-    its icons with a Nerd Font. Neither is available here: the subset is
-    U+0000-00FF plus a handful of arrows and blocks (task-4-addendum §4), so
-    every one of those would render as tofu. The frame is therefore drawn with
-    CSS borders and gradients, and the icons are inline SVG — which also means
-    the corners stay crisp at any size instead of being bound to a cell grid.
-  -->
   <svg class="machine__sprite" aria-hidden="true" focusable="false" width="0" height="0">
     <defs>
       <g id="ff-gear"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7"/></g>
@@ -45,7 +38,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     <div class="ff__logo" set:html={logo} />
 
     <div class="ff__panel" data-uses>
-      {site.machine.map((section, si) => (
+      {site.machine.map((section) => (
         <section class="ff__block" style={`--c: ${section.colour}`}>
           <h3 class="ff__title">
             <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${section.icon}`} /></svg>
@@ -82,29 +75,48 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
 <style>
   .machine {
-    max-width: 1180px;
+    max-width: 1200px;
     margin-inline: auto;
-    padding: clamp(3rem, 10vh, 7rem) var(--gutter);
+    padding: clamp(5rem, 12vw, 10rem) var(--gutter) 0;
     display: grid;
-    gap: 1.75rem;
+    gap: clamp(2.5rem, 6vh, 4rem);
   }
 
-  .machine__heading {
+  .machine__rule {
+    width: 100%;
+    height: 1px;
+    background: var(--hairline);
+    margin-bottom: clamp(1rem, 3vh, 2rem);
+  }
+
+  .machine__head {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--graphite);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .section-heading {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 3.4rem);
-    font-weight: 400;
-    color: var(--muted);
+    font-stretch: 62%;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: clamp(2.25rem, 7vw, 5.5rem);
+    letter-spacing: -0.01em;
+    line-height: 0.9;
+    color: var(--ink);
+    margin: 0;
   }
 
   .machine__sprite { position: absolute; }
-  /* One stroke style for the whole set, set here rather than on 19 symbols --
-     but it MUST hang off .ff__icon, not off .machine__sprite. <use> clones the
-     <g> into its own shadow tree, whose ancestor chain runs up through the
-     .ff__icon <svg>, never through the sprite. A `.machine__sprite g` rule
-     styles only the hidden original: the clones fall back to the initial
-     `fill: black; stroke: none` and paint as solid silhouettes on a near-black
-     panel. fill and stroke are inherited properties, so setting them here
-     reaches the clone. */
+
   .ff__icon {
     width: 1em;
     height: 1em;
@@ -121,47 +133,46 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     gap: clamp(1.5rem, 4vw, 3rem);
     align-items: center;
     grid-template-columns: 1fr;
-    padding: clamp(1.2rem, 3.5vw, 2.2rem);
-    border: 1px solid color-mix(in oklab, var(--muted) 22%, transparent);
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    border: 1px solid var(--hairline);
     border-radius: 14px;
-    background:
-      linear-gradient(160deg, color-mix(in oklab, var(--accent) 4%, var(--surface)), var(--surface) 55%);
+    background: var(--screen);
+    color: var(--screen-text);
   }
-  @media (min-width: 900px) { .ff { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
 
-  .ff__logo { display: flex; justify-content: center; }
+  @media (min-width: 900px) {
+    .ff {
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    }
+  }
+
+  .ff__logo {
+    display: flex;
+    justify-content: center;
+  }
+
   .ff__logo :global(svg) {
     display: block;
     width: 100%;
     height: auto;
-    /* Single column, the Ω would otherwise eat most of a phone screen
-       before a single row of the readout is visible. */
     max-width: min(100%, 22rem);
-    /* The dots pulse as one, so the Ω reads as lit rather than printed. */
-    animation: logo-breathe 6s var(--ease) infinite alternate;
+    opacity: 0.9;
   }
-  /* Below the base rule on purpose. Same specificity, so source order is the
-     only thing deciding it -- written above, the cap wins at every width and
-     the logo never fills its desktop column. */
+
   @media (min-width: 900px) {
-    .ff__logo :global(svg) { max-width: 100%; }
-  }
-  @keyframes logo-breathe {
-    from { opacity: 0.7; filter: drop-shadow(0 0 0 transparent); }
-    to   { opacity: 1;   filter: drop-shadow(0 0 8px color-mix(in oklab, var(--accent-2) 40%, transparent)); }
+    .ff__logo :global(svg) {
+      max-width: 100%;
+    }
   }
 
   .ff__panel {
     font-family: var(--font-mono);
-    /* The floor is 12px, not 0.66rem: 1.15vw only clears that floor above
-       ~918px, so anything smaller would put real content -- kernel, CPU,
-       disks -- at 10.5px monospace on every phone. */
     font-size: clamp(0.75rem, 1.15vw, 0.78rem);
     line-height: 1.75;
     min-width: 0;
   }
 
-  .ff__block { --c: var(--accent); }
+  .ff__block { --c: var(--signal); }
   .ff__block + .ff__block { margin-top: 0.9rem; }
 
   /* ╭─ icon NAME ─────────  */
@@ -178,10 +189,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     text-transform: uppercase;
     color: var(--c);
   }
-  /* Absolute, not a flex item: the corner's TOP border has to land on exactly
-     the same y as .ff__rule, and no align-self value can put a box's edge --
-     rather than its centre or its baseline -- on the line's centre. top: 50%
-     does it directly, and the corner then hangs downward toward the gutter. */
+
   .ff__title::before {
     content: '';
     position: absolute;
@@ -193,19 +201,19 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     border-top: 1px solid var(--c);
     border-top-left-radius: 5px;
   }
-  /* The fading ── run that closes the header line. */
+
   .ff__rule {
     flex: 1;
     height: 1px;
     min-width: 1.5rem;
-    background: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 8%, transparent));
+    background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 8%, transparent));
   }
 
   /* The │ gutter. */
   .ff__rows {
     margin: 0;
     padding-left: 0.9em;
-    border-left: 1px solid color-mix(in oklab, var(--c) 42%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--c) 42%, transparent);
   }
 
   .ff__row {
@@ -214,28 +222,26 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     gap: 0.4em 1em;
     align-items: baseline;
   }
+
   .ff__row dt {
     display: flex;
     align-items: center;
     gap: 0.55em;
     color: var(--c);
   }
+
   .ff__row dd {
     margin: 0;
-    color: var(--text);
+    color: var(--screen-text);
     overflow-wrap: anywhere;
   }
 
-  /* ╰──────────── — built the same way the header is: a rounded corner plus a
-     separate fading run. The corner cannot carry the fade itself, because a
-     border-image is not affected by border-radius (CSS Backgrounds 3), so the
-     earlier single-element version computed a 5px radius that was never
-     honoured and closed the bracket with a hard right angle while ╭ stayed
-     round. */
+  /* ╰──────────── */
   .ff__close {
     display: flex;
     align-items: flex-end;
   }
+
   .ff__close::before {
     content: '';
     width: 0.9em;
@@ -245,11 +251,12 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     border-bottom: 1px solid var(--c);
     border-bottom-left-radius: 5px;
   }
+
   .ff__close::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, var(--c), color-mix(in oklab, var(--c) 5%, transparent));
+    background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 5%, transparent));
   }
 
   .ff__swatches {
@@ -259,35 +266,32 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     margin: 1rem 0 0;
     padding-left: 1.2em;
   }
+
   .ff__swatches li {
     width: 0.72em;
     height: 0.72em;
     border-radius: 50%;
     background: var(--s);
-    animation: swatch-pop 4.5s var(--ease) infinite;
-  }
-  /* Delay comes from the index the template already knows, so the row still
-     lights in reading order if site.swatches ever grows past eight. */
-  .ff__swatches li { animation-delay: calc(var(--i) * 110ms); }
-  @keyframes swatch-pop {
-    0%, 82%, 100% { transform: scale(1);    opacity: 0.75; }
-    88%           { transform: scale(1.45); opacity: 1; }
+    opacity: 0.9;
   }
 
-  .machine__steal { font-family: var(--font-mono); font-size: 0.82rem; }
-  /* Same 44px tap-target floor as the nav: the link's own text box is only
-     17px tall. Inline-flex + min-height, with the padding pulled back out of
-     the flow so the spacing around the paragraph does not change. */
+  .machine__steal {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
   .machine__steal a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
     padding-inline: 0.2rem;
     margin-block: -0.85rem;
+    color: var(--graphite);
+    text-decoration: none;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .ff__logo :global(svg) { animation: none; opacity: 0.95; }
-    .ff__swatches li { animation: none; opacity: 1; }
+  .machine__steal a:hover,
+  .machine__steal a:focus-visible {
+    color: var(--ink);
   }
 </style>
