@@ -228,7 +228,7 @@ test('tagline is visible without JavaScript on a desktop viewport', async ({ bro
   });
   const page = await ctx.newPage();
   await page.goto('/');
-  const line = page.locator('.identity__line');
+  const line = page.locator('.hero__tagline');
   await expect(line).toBeVisible();
   const box = await line.boundingBox();
   expect(box.width).toBeGreaterThan(300);
@@ -244,7 +244,7 @@ function breakScrollScript(page) {
   page.route('**/*.js', async (route) => {
     const res = await route.fetch();
     const body = await res.text();
-    if (!body.includes('--dive')) return route.fulfill({ response: res, body });
+    if (!body.includes('data-revealed')) return route.fulfill({ response: res, body });
     state.broken = true;
     await route.fulfill({
       response: res,
@@ -256,7 +256,7 @@ function breakScrollScript(page) {
     const res = await route.fetch();
     const body = await res.text();
     const broken = body.replace(
-      /<script type="module">((?:(?!<\/script>)[\s\S])*--dive(?:(?!<\/script>)[\s\S])*)<\/script>/,
+      /<script type="module">((?:(?!<\/script>)[\s\S])*data-revealed(?:(?!<\/script>)[\s\S])*)<\/script>/,
       '<script type="module">throw new Error("simulated scroll.js failure");</script>',
     );
     if (broken !== body) state.broken = true;
@@ -266,11 +266,11 @@ function breakScrollScript(page) {
   return state;
 }
 
-test('identity stays visible when scroll.js fails to load', async ({ page }) => {
+test('work stays visible when scroll.js fails to load', async ({ page }) => {
   const state = breakScrollScript(page);
   await page.goto('/');
   expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
-  const line = page.locator('.identity__line');
+  const line = page.locator('#work [data-project-name]').first();
   await expect(line).toBeVisible();
   const info = await line.evaluate((el) => ({
     width: el.getBoundingClientRect().width,
@@ -278,27 +278,27 @@ test('identity stays visible when scroll.js fails to load', async ({ page }) => 
     jsClass: document.documentElement.classList.contains('js'),
   }));
   expect(info.jsClass).toBe(false);
-  expect(info.width).toBeGreaterThan(300);
+  expect(info.width).toBeGreaterThan(40);
   expect(info.clipsContent).toBe(false);
-  await expect(line).toHaveText(/I build things for Linux desktops/);
+  await expect(line).toHaveText(new RegExp(site.pinned[0]));
 });
 
 test('[data-reveal] sections stay visible when scroll.js fails to load', async ({ page }) => {
   const state = breakScrollScript(page);
   await page.goto('/');
   expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
-  const identity = page.locator('.identity');
-  await expect(identity).toBeVisible();
-  const opacity = await identity.evaluate((el) => getComputedStyle(el).opacity);
+  const work = page.locator('#work');
+  await expect(work).toBeVisible();
+  const opacity = await work.evaluate((el) => getComputedStyle(el).opacity);
   expect(opacity).toBe('1');
 });
 
-test('identity section receives data-revealed once scrolled into view', async ({ page }) => {
+test('work section receives data-revealed once scrolled into view', async ({ page }) => {
   await page.goto('/');
-  const identity = page.locator('.identity');
-  await expect(identity).not.toHaveAttribute('data-revealed', '');
-  await identity.scrollIntoViewIfNeeded();
-  await expect(identity).toHaveAttribute('data-revealed', '', { timeout: 3000 });
+  const work = page.locator('#work');
+  await expect(work).not.toHaveAttribute('data-revealed', '');
+  await work.scrollIntoViewIfNeeded();
+  await expect(work).toHaveAttribute('data-revealed', '', { timeout: 3000 });
 });
 
 test('a short data-reveal section at the true end of the document still reveals', async ({ page }) => {
@@ -315,20 +315,20 @@ test('a short data-reveal section at the true end of the document still reveals'
   await expect(fixture).toHaveAttribute('data-revealed', '', { timeout: 3000 });
 });
 
-test('identity section reveals immediately under reduced motion', async ({ browser }) => {
+test('work section reveals immediately under reduced motion', async ({ browser }) => {
   const ctx = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   await page.goto('/');
-  await expect(page.locator('.identity')).toHaveAttribute('data-revealed', '', { timeout: 3000 });
+  await expect(page.locator('#work')).toHaveAttribute('data-revealed', '', { timeout: 3000 });
   await ctx.close();
 });
 
-test('identity section reveals immediately when IntersectionObserver is unavailable', async ({ browser }) => {
+test('work section reveals immediately when IntersectionObserver is unavailable', async ({ browser }) => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.addInitScript(() => { delete window.IntersectionObserver; });
   await page.goto('/');
-  await expect(page.locator('.identity')).toHaveAttribute('data-revealed', '', { timeout: 3000 });
+  await expect(page.locator('#work')).toHaveAttribute('data-revealed', '', { timeout: 3000 });
   await ctx.close();
 });
 
@@ -732,7 +732,18 @@ test('every content block shares one left edge', async ({ page }) => {
       return selectors.map((s) => {
         const el = document.querySelector(s);
         if (!el) throw new Error(`Element not found: ${s}`);
-        return el.getBoundingClientRect().left;
+        // Where the ink starts, not where the box starts: padding on a
+        // link's tap target used to hide a visible offset from this check.
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
+        });
+        const text = walker.nextNode();
+        if (!text) return el.getBoundingClientRect().left;
+        const range = document.createRange();
+        const offset = text.textContent.length - text.textContent.trimStart().length;
+        range.setStart(text, offset);
+        range.setEnd(text, offset + 1);
+        return range.getBoundingClientRect().left;
       });
     });
 
@@ -751,7 +762,18 @@ test('every content block shares one left edge', async ({ page }) => {
       return selectors.map((s) => {
         const el = document.querySelector(s);
         if (!el) throw new Error(`Element not found: ${s}`);
-        return el.getBoundingClientRect().left;
+        // Where the ink starts, not where the box starts: padding on a
+        // link's tap target used to hide a visible offset from this check.
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
+        });
+        const text = walker.nextNode();
+        if (!text) return el.getBoundingClientRect().left;
+        const range = document.createRange();
+        const offset = text.textContent.length - text.textContent.trimStart().length;
+        range.setStart(text, offset);
+        range.setEnd(text, offset + 1);
+        return range.getBoundingClientRect().left;
       });
     });
 
@@ -779,5 +801,17 @@ test('the hero pair fills the column', async ({ page }) => {
 
     expect(pairWidth, `pair width at ${width}px too small`).toBeGreaterThanOrEqual(0.94 * colWidth);
     expect(pairWidth, `pair width at ${width}px too large`).toBeLessThanOrEqual(colWidth);
+  }
+});
+
+test('the mirrored word starts at the mirror box edge on every page that uses it', async ({ page }) => {
+  for (const path of ['/', '/404.html']) {
+    await page.goto(path);
+    await page.evaluate(() => document.fonts.ready);
+    const gap = await page.evaluate(() => {
+      const m = document.querySelector('[data-mirror]');
+      return Math.abs(m.querySelector('.mirror__word').getBoundingClientRect().left - m.getBoundingClientRect().left);
+    });
+    expect(gap, `word is offset inside the mirror on ${path}`).toBeLessThanOrEqual(1);
   }
 });

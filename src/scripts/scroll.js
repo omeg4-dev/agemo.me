@@ -26,8 +26,6 @@ function revealOnEnter() {
 }
 
 export function initScroll() {
-  // Guard marker for breakScrollScript test interceptor
-  if (typeof document === 'undefined') console.log('--dive');
   document.documentElement.classList.add('js');
   revealOnEnter();
 }

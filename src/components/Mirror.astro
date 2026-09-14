@@ -21,6 +21,9 @@ const {
     position: relative;
     display: inline-block;
     width: calc(var(--w) * 2);
+    /* The reflection is anchored to this box's left edge, so the word must be too —
+       an inherited text-align: center (the 404 page) slid it w/2 to the right. */
+    text-align: left;
     font-family: var(--font-display);
     font-weight: 900;
     font-stretch: 100%;
