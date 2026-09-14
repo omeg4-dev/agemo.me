@@ -4,7 +4,7 @@ import repos from '../data/repos.json';
 
 const { pinned } = repos;
 ---
-<section class="work" id="work" aria-labelledby="work-heading" data-reveal>
+<section class="work wrap" id="work" aria-labelledby="work-heading" data-reveal>
   <div class="work__rule" aria-hidden="true"></div>
   <header class="work__head">
     <p class="section-label">work</p>
@@ -18,9 +18,7 @@ const { pinned } = repos;
 
 <style>
   .work {
-    max-width: 1200px;
-    margin-inline: auto;
-    padding: clamp(5rem, 12vw, 10rem) var(--gutter) 0;
+    padding-block: clamp(5rem, 12vw, 10rem) 0;
     display: grid;
     gap: clamp(2.5rem, 6vh, 4rem);
   }

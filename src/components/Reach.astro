@@ -6,7 +6,7 @@ const targets = [
   { label: 'GitHub', href: site.links.github, host: '→ github.com' },
 ];
 ---
-<section class="reach" aria-labelledby="reach-heading" data-reach data-reveal>
+<section class="reach wrap" id="reach" aria-labelledby="reach-heading" data-reach data-reveal>
   <div class="reach__rule" aria-hidden="true"></div>
   <header class="reach__head">
     <p class="section-label">reach</p>
@@ -28,9 +28,7 @@ const targets = [
 
 <style>
   .reach {
-    max-width: 1200px;
-    margin-inline: auto;
-    padding: clamp(5rem, 12vw, 10rem) var(--gutter) 0;
+    padding-block: clamp(5rem, 12vw, 10rem) 0;
     display: grid;
     gap: clamp(2.5rem, 6vh, 4rem);
   }

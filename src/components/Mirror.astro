@@ -31,24 +31,11 @@ const {
   }
 
   .mirror--hero {
-    font-size: clamp(3rem, 9.2vw, 12rem);
-  }
-
-  @media (max-width: 600px) {
-    .mirror--hero {
-      /* Shrink font-size so 2 × word width ≤ 100vw − 2×gutter at 320px */
-      font-size: clamp(1.85rem, 11vw, 3rem);
-    }
+    font-size: min(13rem, calc((min(100vw, 1200px) - 2 * var(--gutter)) / 8));
   }
 
   .mirror--small {
-    font-size: clamp(2.5rem, 10vw, 6rem);
-  }
-
-  @media (max-width: 600px) {
-    .mirror--small {
-      font-size: clamp(2rem, 9vw, 3.5rem);
-    }
+    font-size: min(6.5rem, calc((min(100vw, 1200px) - 2 * var(--gutter)) / 16));
   }
 
   .mirror__h1 {

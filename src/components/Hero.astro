@@ -3,43 +3,47 @@ import Mirror from './Mirror.astro';
 import site from '../config/site.mjs';
 ---
 <section class="hero" data-hero>
-  <div class="hero__content">
-    <Mirror word="OMEGA" ariaLabel="Omega" variant="hero" />
+  <div class="hero__wrap wrap">
+    <div class="hero__content">
+      <Mirror word="OMEGA" ariaLabel="Omega" variant="hero" />
 
-    <div class="hero__details">
-      <p class="hero__tagline identity__line">{site.tagline}</p>
+      <div class="hero__details">
+        <div class="hero__mono">
+          <span>omega</span>
+          <svg class="hero__arrow" aria-hidden="true" focusable="false" viewBox="0 0 48 12">
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 6h36M6 6l4.5-4M6 6l4.5 4M42 6l-4.5-4M42 6l-4.5 4"
+            />
+          </svg>
+          <span>agemo</span>
+        </div>
 
-      <div class="hero__mono">
-        <span>omega</span>
-        <svg class="hero__arrow" aria-hidden="true" focusable="false" viewBox="0 0 48 12">
-          <path
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.25"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6 6h36M6 6l4.5-4M6 6l4.5 4M42 6l-4.5-4M42 6l-4.5 4"
-          />
-        </svg>
-        <span>agemo</span>
+        <ul class="hero__chips" data-presence data-discord-id={site.discordId}>
+          <li class="chip">
+            <span class="chip__dot" aria-hidden="true"></span>
+            <span data-presence-state data-state="offline">checking…</span>
+          </li>
+          <li class="chip"><span data-presence-activity>—</span></li>
+          <li class="chip"><span data-clock>—</span></li>
+        </ul>
       </div>
     </div>
-  </div>
 
-  <div class="hero__cue" aria-hidden="true">
-    <span class="hero__cue-text">scroll</span>
-    <span class="hero__cue-line"></span>
+    <div class="hero__cue" aria-hidden="true">
+      <span class="hero__cue-text">scroll</span>
+      <span class="hero__cue-line"></span>
+    </div>
   </div>
 </section>
 
 <style>
   .hero {
     position: relative;
-    min-height: min(calc(100svh - 52px), 920px);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: clamp(4rem, 10vh, 8rem) var(--gutter);
     background:
       radial-gradient(60% 50% at 30% 35%, color-mix(in srgb, white 45%, transparent), transparent),
       var(--paper);
@@ -54,10 +58,16 @@ import site from '../config/site.mjs';
     }
   }
 
+  .hero__wrap {
+    position: relative;
+    min-height: min(100svh, 56rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: clamp(4rem, 10vh, 8rem);
+  }
+
   .hero__content {
-    max-width: 1200px;
-    width: 100%;
-    margin-inline: auto;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -70,14 +80,6 @@ import site from '../config/site.mjs';
     margin-top: clamp(1.5rem, 4vh, 2.75rem);
     max-width: var(--measure);
     text-align: left;
-  }
-
-  .hero__tagline {
-    font-family: var(--font-body);
-    font-size: clamp(1.05rem, 1rem + 0.6vw, 1.35rem);
-    line-height: 1.5;
-    color: var(--ink);
-    margin: 0;
   }
 
   .hero__mono {
@@ -96,6 +98,50 @@ import site from '../config/site.mjs';
     height: 0.65em;
     flex: none;
     color: var(--signal);
+  }
+
+  .hero__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.25rem;
+    padding: 0 0.95rem;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--paper-2);
+    color: var(--graphite);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .chip__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--graphite);
+    transition: background var(--dur-1) var(--ease);
+  }
+
+  .chip:has([data-state='online']) .chip__dot {
+    background: var(--signal);
+  }
+
+  .chip:has([data-state='idle']) .chip__dot,
+  .chip:has([data-state='dnd']) .chip__dot {
+    background: var(--signal);
+    opacity: 0.8;
   }
 
   .hero__cue {
@@ -131,5 +177,7 @@ import site from '../config/site.mjs';
 
 <script>
   import { initMirrorLine } from '../scripts/mirror-line.js';
+  import { initPresence } from '../scripts/presence.js';
   initMirrorLine();
+  initPresence();
 </script>

@@ -10,7 +10,7 @@ const items = [
 ];
 ---
 <nav class="nav" aria-label="Primary">
-  <div class="nav__inner">
+  <div class="nav__inner wrap">
     <a class="nav__home" href="/" aria-current={here === 'home' ? 'page' : undefined}>omega</a>
     <ul class="nav__list">
       {items.map((i) => (
@@ -35,12 +35,10 @@ const items = [
     z-index: 50;
     background: var(--paper);
     border-bottom: 1px solid var(--hairline);
-    padding: 0.6rem var(--gutter);
+    padding: 0.6rem 0;
   }
 
   .nav__inner {
-    max-width: 1200px;
-    margin-inline: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;

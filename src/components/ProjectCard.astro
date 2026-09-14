@@ -97,8 +97,14 @@ const dateStr = repo.pushedAt ? repo.pushedAt.slice(0, 7) : '';
     letter-spacing: 0.08em;
     color: var(--graphite);
     display: flex;
+    flex-wrap: wrap;
     gap: 1.25rem;
     align-items: baseline;
+  }
+
+  .repo-row__lang,
+  .repo-row__date {
+    white-space: nowrap;
   }
 
   @media (min-width: 900px) {

@@ -3,7 +3,7 @@ const sha = __BUILD_SHA__;
 const year = new Date().getFullYear();
 ---
 <footer class="foot">
-  <div class="foot__row">
+  <div class="foot__row wrap">
     <p class="foot__palindrome" aria-hidden="true">
       <span>OMEGA</span>
       <svg class="foot__arrow" aria-hidden="true" focusable="false" viewBox="0 0 48 12">
@@ -33,11 +33,9 @@ const year = new Date().getFullYear();
 
 <style>
   .foot {
-    max-width: 1200px;
-    margin-inline: auto;
-    padding: clamp(4rem, 8vh, 6rem) var(--gutter) clamp(3rem, 6vh, 5rem);
-    margin-top: clamp(4rem, 10vh, 8rem);
     border-top: 1px solid var(--hairline);
+    padding-block: clamp(4rem, 8vh, 6rem) clamp(3rem, 6vh, 5rem);
+    margin-top: clamp(4rem, 10vh, 8rem);
     font-family: var(--font-mono);
     font-size: 0.78rem;
     letter-spacing: 0.08em;
@@ -48,7 +46,7 @@ const year = new Date().getFullYear();
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.75rem 1.25rem;
   }
 

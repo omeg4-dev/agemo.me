@@ -129,6 +129,13 @@ export function initMirrorLine() {
     introStart = performance.now();
     setX(0);
     requestAnimationFrame(stepIntro);
+    setTimeout(() => {
+      if (introRunning) {
+        introRunning = false;
+        setX(w);
+        targetX = w;
+      }
+    }, introDuration + 150);
   });
 
   // Desktop pointer tracking

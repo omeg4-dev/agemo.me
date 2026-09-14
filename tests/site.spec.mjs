@@ -713,3 +713,71 @@ test('every image and canvas is either labelled or explicitly decorative', async
     expect(unlabelled, path).toEqual([]);
   }
 });
+
+test('every content block shares one left edge', async ({ page }) => {
+  for (const width of [1440, 375]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const homeLefts = await page.evaluate(() => {
+      const selectors = [
+        'nav .wrap > *',
+        'h1',
+        '#work h2',
+        '#machine h2',
+        '#reach h2',
+        'footer .wrap > *',
+      ];
+      return selectors.map((s) => {
+        const el = document.querySelector(s);
+        if (!el) throw new Error(`Element not found: ${s}`);
+        return el.getBoundingClientRect().left;
+      });
+    });
+
+    for (let i = 1; i < homeLefts.length; i++) {
+      expect(
+        Math.abs(homeLefts[i] - homeLefts[0]),
+        `home element index ${i} left mismatch at ${width}px: expected ${homeLefts[0]}, got ${homeLefts[i]}`,
+      ).toBeLessThanOrEqual(1);
+    }
+
+    await page.goto('/links');
+    await page.waitForLoadState('networkidle');
+
+    const linksLefts = await page.evaluate(() => {
+      const selectors = ['nav .wrap > *', 'h1'];
+      return selectors.map((s) => {
+        const el = document.querySelector(s);
+        if (!el) throw new Error(`Element not found: ${s}`);
+        return el.getBoundingClientRect().left;
+      });
+    });
+
+    expect(
+      Math.abs(linksLefts[1] - linksLefts[0]),
+      `links page h1 left mismatch at ${width}px`,
+    ).toBeLessThanOrEqual(1);
+  }
+});
+
+test('the hero pair fills the column', async ({ page }) => {
+  for (const width of [375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const { pairWidth, colWidth } = await page.evaluate(() => {
+      const word = document.querySelector('.mirror__word');
+      const wrap = document.querySelector('.wrap');
+      const cs = getComputedStyle(wrap);
+      const col = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const w = word.getBoundingClientRect().width;
+      return { pairWidth: 2 * w, colWidth: col };
+    });
+
+    expect(pairWidth, `pair width at ${width}px too small`).toBeGreaterThanOrEqual(0.94 * colWidth);
+    expect(pairWidth, `pair width at ${width}px too large`).toBeLessThanOrEqual(colWidth);
+  }
+});

@@ -1,6 +1,13 @@
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
 
+.wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
 html {
   color-scheme: light dark;
 }

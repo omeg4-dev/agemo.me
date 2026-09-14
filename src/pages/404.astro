@@ -6,7 +6,7 @@ import Mirror from '../components/Mirror.astro';
 <Base title="404 · Omega ⟷ agemO" description="This page does not exist.">
   <Nav />
 
-  <section class="lost" data-404>
+  <section class="lost wrap" data-404>
     <div class="lost__hero">
       <Mirror word="404" ariaLabel="404" variant="small" />
     </div>
@@ -23,7 +23,7 @@ import Mirror from '../components/Mirror.astro';
     align-items: center;
     justify-content: center;
     min-height: 85svh;
-    padding: var(--gutter);
+    padding-block: var(--gutter);
     text-align: center;
     gap: 1.5rem;
   }

@@ -3,7 +3,7 @@ import site from '../config/site.mjs';
 
 const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 ---
-<section class="machine" aria-labelledby="machine-heading" data-reveal>
+<section class="machine wrap" id="machine" aria-labelledby="machine-heading" data-reveal>
   <div class="machine__rule" aria-hidden="true"></div>
   <header class="machine__head">
     <p class="section-label">machine</p>
@@ -75,9 +75,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
 <style>
   .machine {
-    max-width: 1200px;
-    margin-inline: auto;
-    padding: clamp(5rem, 12vw, 10rem) var(--gutter) 0;
+    padding-block: clamp(5rem, 12vw, 10rem) 0;
     display: grid;
     gap: clamp(2.5rem, 6vh, 4rem);
   }
