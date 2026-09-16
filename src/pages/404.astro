@@ -1,70 +1,136 @@
 ---
+// 404.astro: Terminal-styled 404 error page
 import Base from '../layouts/Base.astro';
-import Nav from '../components/Nav.astro';
+import Wallpaper from '../components/Wallpaper.astro';
+import Bar from '../components/Bar.astro';
+import Window from '../components/Window.astro';
 import Mirror from '../components/Mirror.astro';
+import KeysOverlay from '../components/KeysOverlay.astro';
+import Launcher from '../components/Launcher.astro';
 ---
 <Base title="404 · Omega ⟷ agemO" description="This page does not exist.">
-  <Nav />
+  <Wallpaper />
+  <Bar here="404" />
+  <KeysOverlay />
+  <Launcher />
 
-  <section class="lost wrap" data-404>
-    <div class="lost__hero">
-      <Mirror word="404" ariaLabel="404" variant="small" />
-    </div>
-    <p class="lost__body">This page does not exist.</p>
-    <a class="lost__back" href="/">← Back home</a>
-  </section>
+  <main class="lost-page" data-404>
+    <Window title="zsh" app="terminal" class="lost-win">
+      <div class="lost-body">
+        <div class="lost__prompt">
+          <span class="lost__user">omega@cachyos</span>
+          <span class="lost__tilde"> ~ </span>
+          <span class="lost__cmd">$ cd <span id="lost-path">this page</span></span>
+        </div>
+
+        <p class="lost__error">cd: no such file or directory</p>
+
+        <div class="lost__mirror">
+          <Mirror word="404" ariaLabel="404" variant="small" />
+        </div>
+
+        <div class="lost__actions">
+          <a class="lost__btn" href="/">cd ~</a>
+          <button class="lost__btn" type="button" id="lost-launcher-btn">open launcher</button>
+        </div>
+      </div>
+    </Window>
+  </main>
 </Base>
 
 <style>
-  .lost {
-    position: relative;
+  .lost-page {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: calc(44px + 2 * var(--gap-outer)) var(--gap-outer) var(--gap-outer);
+    box-sizing: border-box;
+  }
+
+  .lost-win {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .lost-body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 85svh;
-    padding-block: var(--gutter);
+    gap: 20px;
+    padding: 16px;
+    font-family: var(--font-mono);
     text-align: center;
-    gap: 1.5rem;
   }
 
-  .lost__hero {
+  .lost__prompt {
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .lost__user { color: var(--green); font-weight: 700; }
+  .lost__tilde { color: var(--blue); font-weight: 700; }
+  .lost__cmd { color: var(--text); }
+
+  .lost__error {
+    color: var(--rose);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .lost__mirror {
+    margin-block: 8px;
     display: flex;
     justify-content: center;
   }
 
-  .lost__body {
-    font-family: var(--font-body);
-    font-size: clamp(1rem, 1.5vw, 1.25rem);
-    color: var(--graphite);
-    margin: 0;
+  .lost__actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .lost__back {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    letter-spacing: 0.08em;
-    color: var(--ink);
-    text-decoration: none;
+  .lost__btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-height: 44px;
-    padding: 0.5rem 1.25rem;
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
-    background: var(--paper-2);
+    min-width: 120px;
+    padding: 8px 18px;
+    border: 1px solid var(--base02);
+    border-radius: var(--radius);
+    background: var(--base01);
+    color: var(--text);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
     transition: border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
   }
 
-  .lost__back:hover,
-  .lost__back:focus-visible {
-    border-color: var(--signal);
-    color: var(--signal);
+  .lost__btn:hover,
+  .lost__btn:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 </style>
 
 <script>
   import { initMirrorLine } from '../scripts/mirror-line.js';
+
   initMirrorLine();
+
+  const pathEl = document.getElementById('lost-path');
+  if (pathEl && typeof window !== 'undefined') {
+    pathEl.textContent = window.location.pathname;
+  }
+
+  const launcherBtn = document.getElementById('lost-launcher-btn');
+  if (launcherBtn) {
+    launcherBtn.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('agemo:launcher'));
+    });
+  }
 </script>

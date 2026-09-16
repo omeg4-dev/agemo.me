@@ -1,0 +1,143 @@
+---
+// Window.astro: Hyprland-style tiled window component with animated gradient borders
+interface Props {
+  title: string;
+  app?: string;
+  accent?: string;
+  as?: string;
+  class?: string;
+  id?: string;
+  i?: number;
+  dataReveal?: boolean;
+  [key: string]: any;
+}
+
+const {
+  title,
+  app,
+  accent,
+  as: BodyTag = 'div',
+  class: className = '',
+  id,
+  i,
+  dataReveal = true,
+  ...rest
+} = Astro.props;
+
+const styleAttrs = [
+  accent ? `--accent: ${accent};` : undefined,
+  i !== undefined ? `--i: ${i};` : undefined,
+].filter(Boolean).join(' ');
+---
+<article
+  class={`win ${className}`}
+  id={id}
+  data-reveal={dataReveal ? '' : undefined}
+  style={styleAttrs || undefined}
+  {...rest}
+>
+  <header class="win__bar">
+    <span class="win__title">{title}</span>
+    <div class="win__controls" aria-hidden="true">
+      <span class="win__dot"></span>
+      <span class="win__dot"></span>
+      <span class="win__dot"></span>
+    </div>
+    {app && <span class="win__app">{app}</span>}
+  </header>
+  <BodyTag class="win__body">
+    <slot />
+  </BodyTag>
+</article>
+
+<style>
+  .win {
+    --win-bg-solid: #1a1a1a;
+    --win-border-1: var(--base02);
+    --win-border-2: var(--base02);
+    position: relative;
+    border-radius: var(--radius);
+    background:
+      linear-gradient(var(--win-bg-solid), var(--win-bg-solid)) padding-box,
+      linear-gradient(var(--angle, 45deg), var(--win-border-1), var(--win-border-2)) border-box;
+    border: var(--border) solid transparent;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: box-shadow var(--dur-2) var(--ease);
+  }
+
+  .win:hover,
+  .win:focus-within {
+    --win-border-1: var(--accent);
+    --win-border-2: var(--accent-2);
+    box-shadow: 0 20px 60px -20px rgb(0 0 0 / 0.6);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .win:hover {
+      animation: borderangle 4s linear infinite;
+    }
+  }
+
+  @keyframes borderangle {
+    to {
+      --angle: 405deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .win:hover {
+      animation: none !important;
+    }
+  }
+
+  .win__bar {
+    height: 34px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--base02);
+    user-select: none;
+    background: rgb(22 22 22 / 0.6);
+  }
+
+  .win__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .win__controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .win__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--base03);
+  }
+
+  .win__app {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+    opacity: 0.8;
+  }
+
+  .win__body {
+    padding: clamp(16px, 2.5vw, 20px);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+</style>

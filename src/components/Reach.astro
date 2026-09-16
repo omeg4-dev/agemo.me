@@ -1,144 +1,144 @@
 ---
+// Reach.astro: Workspace 5 (Reach) - Direct links to Discord and GitHub + Footer
+import Window from './Window.astro';
+import Footer from './Footer.astro';
 import site from '../config/site.mjs';
 
-const targets = [
-  { label: 'Discord', href: site.links.discord, host: '→ discord.com' },
-  { label: 'GitHub', href: site.links.github, host: '→ github.com' },
-];
+const discordHost = 'discord.com/users/' + site.discordId;
+const githubHost = 'github.com/' + site.owner;
 ---
-<section class="reach wrap" id="reach" aria-labelledby="reach-heading" data-reach data-reveal>
-  <div class="reach__rule" aria-hidden="true"></div>
+<section class="reach" id="ws-reach" aria-labelledby="reach-heading" data-reach data-ws>
   <header class="reach__head">
-    <p class="section-label">reach</p>
-    <h2 class="section-heading" id="reach-heading">Reach</h2>
+    <h2 class="section-heading" id="reach-heading">reach</h2>
+    <p class="section-sub">contact & coordinates · no forms, no trackers</p>
   </header>
 
-  <div class="reach__links">
-    {targets.map((t) => (
-      <a class="reach__target" href={t.href} target="_blank" rel="noopener noreferrer">
-        <span class="reach__word">
-          {t.label}
-          <span class="reach__line" aria-hidden="true"></span>
-        </span>
-        <span class="reach__host">{t.host}</span>
+  <div class="reach__grid">
+    <Window title="discord" app="client" accent="var(--purple)" class="reach__win" i={0}>
+      <a
+        href={site.links.discord}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="reach__target"
+        aria-label={`Discord: ${discordHost}`}
+      >
+        <span class="reach__word">Discord</span>
+        <span class="reach__host">→ {discordHost}</span>
       </a>
-    ))}
+    </Window>
+
+    <Window title="github" app="browser" accent="var(--blue)" class="reach__win" i={1}>
+      <a
+        href={site.links.github}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="reach__target"
+        aria-label={`GitHub: ${githubHost}`}
+      >
+        <span class="reach__word">GitHub</span>
+        <span class="reach__host">→ {githubHost}</span>
+      </a>
+    </Window>
   </div>
+
+  <Footer />
 </section>
 
 <style>
   .reach {
-    padding-block: clamp(5rem, 12vw, 10rem) 0;
-    display: grid;
-    gap: clamp(2.5rem, 6vh, 4rem);
-  }
-
-  .reach__rule {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     width: 100%;
-    height: 1px;
-    background: var(--hairline);
-    margin-bottom: clamp(1rem, 3vh, 2rem);
+    content-visibility: auto;
+    contain-intrinsic-size: 600px;
   }
 
   .reach__head {
     display: flex;
     flex-direction: column;
-  }
-
-  .section-label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--graphite);
-    margin: 0 0 0.5rem 0;
+    gap: 4px;
+    margin-left: 0;
   }
 
   .section-heading {
     font-family: var(--font-display);
-    font-stretch: 62%;
     font-weight: 800;
-    text-transform: uppercase;
-    font-size: clamp(2.25rem, 7vw, 5.5rem);
-    letter-spacing: -0.01em;
+    font-stretch: 62%;
+    font-size: clamp(3rem, 8vw, 7rem);
     line-height: 0.9;
-    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--blue);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin: 0;
   }
 
-  .reach__links {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.5rem, 4vh, 3rem);
+  @supports not (background-clip: text) {
+    .section-heading {
+      background: none;
+      -webkit-text-fill-color: initial;
+      color: var(--blue);
+    }
+  }
+
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .reach__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--gap-inner);
+    width: 100%;
+  }
+
+  @media (min-width: 800px) {
+    .reach__grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .reach__target {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
+    justify-content: center;
+    padding: clamp(16px, 3vw, 32px);
     text-decoration: none;
     color: inherit;
-    min-height: 44px;
-    padding-block: 0.5rem;
-  }
-
-  @media (min-width: 720px) {
-    .reach__target {
-      flex-direction: row;
-      align-items: baseline;
-      gap: 2rem;
-    }
+    min-height: 180px;
   }
 
   .reach__word {
-    position: relative;
-    display: inline-block;
     font-family: var(--font-display);
     font-weight: 800;
     font-stretch: 62%;
-    font-size: clamp(2.5rem, 9vw, 7rem);
+    font-size: clamp(3rem, 9vw, 7.5rem);
     line-height: 0.9;
     text-transform: uppercase;
-    color: var(--ink);
-    overflow: hidden;
+    color: var(--text);
+    transition: transform var(--dur-2) var(--ease);
   }
 
-  .reach__line {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 2px;
-    background: var(--signal);
-    transform: translateX(-4px);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform var(--dur-2) var(--ease), opacity var(--dur-1) var(--ease);
-  }
-
-  .reach__target:hover .reach__line,
-  .reach__target:focus-visible .reach__line {
-    opacity: 1;
-    transform: translateX(calc(100% + 4px));
+  .reach__win:hover .reach__word,
+  .reach__win:focus-within .reach__word {
+    transform: translateX(6px);
   }
 
   .reach__host {
     font-family: var(--font-mono);
-    font-size: 0.85rem;
-    letter-spacing: 0.08em;
-    color: var(--graphite);
-    transition: color var(--dur-1) var(--ease);
-  }
-
-  .reach__target:hover .reach__host,
-  .reach__target:focus-visible .reach__host {
-    color: var(--ink);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .reach__line {
-      display: none;
-    }
+    font-size: clamp(0.85rem, 1.2vw, 1.1rem);
+    color: var(--text-dim);
+    margin-top: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

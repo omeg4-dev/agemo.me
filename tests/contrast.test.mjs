@@ -32,32 +32,33 @@ function ratio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-const [lightCss, darkCss] = css.split('@media');
-assert.ok(lightCss && darkCss, 'expected light :root and @media dark blocks in tokens.css');
+test('text tokens meet AA (4.5:1) on wallpaper (--base00) and window body (--base01)', () => {
+  const base00 = token('base00');
+  const base01 = token('base01');
 
-test('light theme text meets AA (4.5:1) on both paper grounds', () => {
-  assert.ok(ratio(token('ink', lightCss), token('paper', lightCss)) >= 4.5, 'ink on paper');
-  assert.ok(ratio(token('ink', lightCss), token('paper-2', lightCss)) >= 4.5, 'ink on paper-2');
-  assert.ok(ratio(token('graphite', lightCss), token('paper', lightCss)) >= 4.5, 'graphite on paper');
-  assert.ok(ratio(token('graphite', lightCss), token('paper-2', lightCss)) >= 4.5, 'graphite on paper-2');
+  // --base05 (primary text)
+  assert.ok(ratio(token('base05'), base00) >= 4.5, 'base05 on base00');
+  assert.ok(ratio(token('base05'), base01) >= 4.5, 'base05 on base01');
+
+  // --base04 (secondary text)
+  assert.ok(ratio(token('base04'), base00) >= 4.5, 'base04 on base00');
+  assert.ok(ratio(token('base04'), base01) >= 4.5, 'base04 on base01');
+
+  // --text-dim (muted text)
+  // --win-bg is rgba(22, 22, 22 / 0.82) over --base00 (#161616), which blends to ~#181818.
+  // --base01 (#262626) is brighter than --win-bg, so testing against --base01 covers the worst-case ground.
+  assert.ok(ratio(token('text-dim'), base00) >= 4.5, 'text-dim on base00');
+  assert.ok(ratio(token('text-dim'), base01) >= 4.5, 'text-dim on base01');
 });
 
-test('light theme screen text meets AA (4.5:1) on screen ground', () => {
-  assert.ok(ratio(token('screen-text', lightCss), token('screen', lightCss)) >= 4.5, 'screen-text on screen');
-});
-
-test('dark theme text meets AA (4.5:1) on both paper grounds', () => {
-  assert.ok(ratio(token('ink', darkCss), token('paper', darkCss)) >= 4.5, 'dark ink on paper');
-  assert.ok(ratio(token('ink', darkCss), token('paper-2', darkCss)) >= 4.5, 'dark ink on paper-2');
-  assert.ok(ratio(token('graphite', darkCss), token('paper', darkCss)) >= 4.5, 'dark graphite on paper');
-  assert.ok(ratio(token('graphite', darkCss), token('paper-2', darkCss)) >= 4.5, 'dark graphite on paper-2');
-});
-
-test('dark theme screen text meets AA (4.5:1) on screen ground', () => {
-  assert.ok(ratio(token('screen-text', darkCss), token('screen', darkCss)) >= 4.5, 'dark screen-text on screen');
+test('terminal accent colours meet AA (4.5:1) on window body ground (--base01)', () => {
+  const base01 = token('base01');
+  for (const name of ['blue', 'cyan', 'green', 'rose', 'purple']) {
+    assert.ok(ratio(token(name), base01) >= 4.5, `${name} on base01`);
+  }
 });
 
 test('a commented-out token is not accepted', () => {
-  const fixture = `:root {\n  /* --paper: #E9ECEF; */\n}`;
-  assert.throws(() => token('paper', fixture));
+  const fixture = `:root {\n  /* --base00: #161616; */\n}`;
+  assert.throws(() => token('base00', fixture));
 });

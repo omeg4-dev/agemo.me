@@ -1,9 +1,10 @@
 ---
-const sha = __BUILD_SHA__;
+// Footer.astro: Desktop shell footer with palindrome, build SHA, metadata and top link
+const sha = typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : 'local';
 const year = new Date().getFullYear();
 ---
 <footer class="foot">
-  <div class="foot__row wrap">
+  <div class="foot__row">
     <p class="foot__palindrome" aria-hidden="true">
       <span>OMEGA</span>
       <svg class="foot__arrow" aria-hidden="true" focusable="false" viewBox="0 0 48 12">
@@ -22,38 +23,42 @@ const year = new Date().getFullYear();
     <span class="foot__sep" aria-hidden="true">/</span>
 
     <p class="foot__meta">
-      sha <code data-build-sha>{sha}</code>
+      built from <code data-build-sha>{sha}</code>
     </p>
 
     <span class="foot__sep" aria-hidden="true">/</span>
 
-    <p class="foot__year">{year}</p>
+    <p class="foot__tech">astro · no trackers</p>
+
+    <span class="foot__sep" aria-hidden="true">/</span>
+
+    <p class="foot__year">© {year}</p>
+
+    <a class="foot__top" href="#ws-home">back to top ↑</a>
   </div>
 </footer>
 
 <style>
   .foot {
-    border-top: 1px solid var(--hairline);
-    padding-block: clamp(4rem, 8vh, 6rem) clamp(3rem, 6vh, 5rem);
-    margin-top: clamp(4rem, 10vh, 8rem);
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--base02);
     font-family: var(--font-mono);
-    font-size: 0.78rem;
-    letter-spacing: 0.08em;
-    color: var(--graphite);
+    font-size: 12px;
+    color: var(--text-dim);
   }
 
   .foot__row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-start;
-    gap: 0.75rem 1.25rem;
+    gap: 0.75rem 1rem;
   }
 
   .foot__palindrome {
     display: inline-flex;
     align-items: center;
-    gap: 0.6em;
+    gap: 0.5em;
     margin: 0;
     text-transform: uppercase;
   }
@@ -62,19 +67,44 @@ const year = new Date().getFullYear();
     width: 2.2em;
     height: 0.6em;
     flex: none;
-    color: var(--signal);
+    color: var(--pink);
   }
 
   .foot__sep {
-    color: var(--hairline);
+    color: var(--base02);
   }
 
   .foot__meta,
+  .foot__tech,
   .foot__year {
     margin: 0;
   }
 
   .foot__meta code {
-    color: var(--ink);
+    color: var(--text);
+  }
+
+  .foot__top {
+    margin-left: auto;
+    color: var(--accent);
+    text-decoration: none;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    transition: color var(--dur-1) var(--ease);
+  }
+
+  .foot__top:hover,
+  .foot__top:focus-visible {
+    color: var(--accent-2);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 600px) {
+    .foot__top {
+      margin-left: 0;
+      width: 100%;
+    }
   }
 </style>

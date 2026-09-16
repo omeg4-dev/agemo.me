@@ -1,0 +1,277 @@
+---
+// WorkPreview.astro: Phase-A static demo previews for pinned repositories
+interface Props {
+  name: string;
+  accent?: string;
+}
+
+const { name, accent = 'var(--accent)' } = Astro.props;
+---
+<div class="demo-slot" data-demo={name} style={`--repo-accent: ${accent};`}>
+  {name === 'hypr-keybind-overlay' && (
+    <div class="demo-keybinds" aria-hidden="true">
+      <div class="demo-kb-row">
+        <span class="demo-key demo-key--mod">SUPER</span>
+        <span class="demo-key demo-key--act">Q</span>
+        <span class="demo-key">W</span>
+        <span class="demo-key demo-key--act">E</span>
+        <span class="demo-key">R</span>
+        <span class="demo-key">T</span>
+      </div>
+      <div class="demo-kb-row">
+        <span class="demo-key demo-key--mod">SUPER</span>
+        <span class="demo-key demo-key--act">1</span>
+        <span class="demo-key">2</span>
+        <span class="demo-key">3</span>
+        <span class="demo-key">4</span>
+        <span class="demo-key">5</span>
+      </div>
+    </div>
+  )}
+
+  {name === 'magpie' && (
+    <div class="demo-magpie" aria-hidden="true">
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">paru -Syu</span>
+        <span class="demo-clip-time">2m</span>
+      </div>
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">hyprctl reload</span>
+        <span class="demo-clip-time">9m</span>
+      </div>
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">#78a9ff</span>
+        <span class="demo-clip-time">1h</span>
+      </div>
+    </div>
+  )}
+
+  {name === 'gamehub' && (
+    <div class="demo-gamehub" aria-hidden="true">
+      <div class="demo-tv">
+        <div class="demo-tv__screen">
+          <div class="demo-tv__stars"></div>
+          <div class="demo-tv__player">▲</div>
+        </div>
+      </div>
+      <div class="demo-phones">
+        <div class="demo-phone">
+          <svg viewBox="0 0 24 24" width="20" height="20" class="demo-qr">
+            <rect x="2" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="16" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="2" y="16" width="6" height="6" fill="currentColor"/>
+            <rect x="10" y="6" width="4" height="4" fill="currentColor"/>
+            <rect x="10" y="14" width="4" height="4" fill="currentColor"/>
+            <rect x="16" y="16" width="4" height="4" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="demo-phone">
+          <svg viewBox="0 0 24 24" width="20" height="20" class="demo-qr">
+            <rect x="2" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="16" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="2" y="16" width="6" height="6" fill="currentColor"/>
+            <rect x="10" y="8" width="4" height="4" fill="currentColor"/>
+            <rect x="14" y="12" width="4" height="4" fill="currentColor"/>
+            <rect x="16" y="16" width="4" height="4" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {name === 'mc-jukebox' && (
+    <div class="demo-jukebox" aria-hidden="true">
+      <div class="demo-disc">
+        <div class="demo-disc__center"></div>
+      </div>
+      <div class="demo-pill">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="demo-note">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span>now playing</span>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .demo-slot {
+    margin-top: auto;
+    padding-top: 16px;
+  }
+
+  /* hypr-keybind-overlay preview */
+  .demo-keybinds {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--base00);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--base02);
+  }
+
+  .demo-kb-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .demo-key {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: var(--base01);
+    border: 1px solid var(--base03);
+    border-radius: 4px;
+    color: var(--base04);
+  }
+
+  .demo-key--mod {
+    border-color: var(--base02);
+    color: var(--text-dim);
+  }
+
+  .demo-key--act {
+    border-color: var(--repo-accent);
+    color: var(--repo-accent);
+    box-shadow: 0 0 8px rgb(120 169 255 / 0.2);
+  }
+
+  /* magpie preview */
+  .demo-magpie {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .demo-clip-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-left: 3px solid var(--repo-accent);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .demo-clip-text {
+    color: var(--base04);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .demo-clip-time {
+    color: var(--text-dim);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  /* gamehub preview */
+  .demo-gamehub {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .demo-tv {
+    flex: 1;
+    aspect-ratio: 16 / 9;
+    background: var(--base00);
+    border: 2px solid var(--base03);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .demo-tv__screen {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, #1f2839, #0d1117);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .demo-tv__player {
+    font-size: 18px;
+    color: var(--repo-accent);
+  }
+
+  .demo-phones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .demo-phone {
+    width: 32px;
+    height: 48px;
+    border: 1.5px solid var(--base03);
+    border-radius: 6px;
+    background: var(--base01);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--repo-accent);
+  }
+
+  /* mc-jukebox preview */
+  .demo-jukebox {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-radius: 8px;
+  }
+
+  .demo-disc {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #111, #333, #111, #444, #111);
+    border: 2px solid var(--base03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.5);
+    flex-shrink: 0;
+  }
+
+  .demo-disc__center {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--repo-accent);
+    border: 2px solid #111;
+  }
+
+  .demo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--base01);
+    border: 1px solid var(--base03);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--base04);
+  }
+
+  .demo-note {
+    color: var(--repo-accent);
+  }
+</style>

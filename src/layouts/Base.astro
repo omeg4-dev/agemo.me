@@ -4,8 +4,6 @@ import '../styles/base.css';
 
 const { title, description } = Astro.props;
 
-// Astro.site is the origin only, so using it directly gave every page the
-// same canonical URL — /links and /404 both claiming to be the home page.
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 ---
 <!doctype html>
@@ -15,7 +13,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#E9ECEF" />
+    <meta name="theme-color" content="#161616" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -25,6 +23,22 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/anybody.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin />
+    <script is:inline>
+      try {
+        var a = localStorage.getItem('agemo:accent');
+        var p = {blue:'#be95ff',cyan:'#78a9ff',green:'#3ddbd9',pink:'#be95ff',purple:'#ee5396',rose:'#be95ff'};
+        var c = {blue:'#78a9ff',cyan:'#3ddbd9',green:'#42be65',pink:'#ee5396',purple:'#be95ff',rose:'#ff7eb6'};
+        if (a && c[a]) {
+          document.documentElement.style.setProperty('--accent', c[a]);
+          document.documentElement.style.setProperty('--accent-2', p[a]);
+        }
+        var pth = location.pathname;
+        var isHome = pth === '/' || pth === '/index.html';
+        if (isHome && !location.hash && !sessionStorage.getItem('agemo:unlocked') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('locked');
+        }
+      } catch(e) {}
+    </script>
   </head>
   <body>
     <slot />

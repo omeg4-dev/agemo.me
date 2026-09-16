@@ -1,0 +1,251 @@
+---
+// LinksWorkspace.astro: Workspace 4 (Links) - yazi file manager style
+import Window from './Window.astro';
+import linksData from '../data/links.json' with { type: 'json' };
+
+// Group by tag, preserving file order
+const groups: { tag: string; items: any[] }[] = [];
+for (const link of linksData.links) {
+  const tag = link.tag || 'misc';
+  let group = groups.find((g) => g.tag === tag);
+  if (!group) groups.push((group = { tag, items: [] }));
+  group.items.push(link);
+}
+
+const host = (url: string) => {
+  try {
+    return new URL(url).host.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
+---
+<section class="links-ws" id="ws-links" aria-labelledby="links-heading" data-ws>
+  <header class="links-ws__head">
+    <h2 class="section-heading" id="links-heading">links</h2>
+    <p class="section-sub">pointers vault · file manager view</p>
+  </header>
+
+  <Window title="~/links" app="yazi" class="links-ws__win" i={0}>
+    <div class="fm">
+      {groups.map((group) => (
+        <div class="fm__group">
+          <div class="fm__folder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="fm__folder-icon">
+              <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+            </svg>
+            <span class="fm__folder-name">{group.tag}/</span>
+          </div>
+
+          <div class="fm__files">
+            {group.items.map((item) => (
+              <a
+                class="fm__file"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div class="fm__file-left">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fm__file-icon" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span class="fm__file-title">{item.title}</span>
+                  <span class="fm__file-host">{host(item.url)}</span>
+                </div>
+                {item.note && <span class="fm__file-note">{item.note}</span>}
+                <span class="fm__file-go" aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div class="fm__foot">
+        <a href="/links" class="fm__full-list-link">open the full list →</a>
+      </div>
+    </div>
+  </Window>
+</section>
+
+<style>
+  .links-ws {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    content-visibility: auto;
+    contain-intrinsic-size: 800px;
+  }
+
+  .links-ws__head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-left: 0;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-stretch: 62%;
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.9;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--blue);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+  }
+
+  @supports not (background-clip: text) {
+    .section-heading {
+      background: none;
+      -webkit-text-fill-color: initial;
+      color: var(--blue);
+    }
+  }
+
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .fm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: var(--font-mono);
+  }
+
+  .fm__group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fm__folder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cyan);
+    padding: 4px 0;
+  }
+
+  .fm__folder-icon {
+    color: var(--cyan);
+  }
+
+  .fm__files {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 14px;
+    border-left: 1px dashed var(--base02);
+  }
+
+  .fm__file {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: inherit;
+    text-decoration: none;
+    min-height: 44px;
+    transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+  }
+
+  .fm__file:hover,
+  .fm__file:focus-visible {
+    background: rgb(255 255 255 / 0.06);
+  }
+
+  .fm__file-left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .fm__file-icon {
+    color: var(--text-dim);
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  .fm__file-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .fm__file-host {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .fm__file-note {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--base04);
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .fm__file-go {
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity var(--dur-1) var(--ease);
+  }
+
+  .fm__file:hover .fm__file-go,
+  .fm__file:focus-visible .fm__file-go {
+    opacity: 1;
+  }
+
+  .fm__foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--base02);
+  }
+
+  .fm__full-list-link {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    min-height: 48px;
+    min-width: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .fm__full-list-link:hover,
+  .fm__full-list-link:focus-visible {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .fm__file {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    .fm__file-note {
+      margin-left: 0;
+      text-align: left;
+    }
+  }
+</style>

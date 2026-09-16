@@ -29,16 +29,15 @@ const {
     font-stretch: 100%;
     text-transform: uppercase;
     line-height: 0.85;
-    color: var(--ink);
     user-select: none;
   }
 
   .mirror--hero {
-    font-size: min(13rem, calc((min(100vw, 1200px) - 2 * var(--gutter)) / 8));
+    font-size: min(13rem, calc((min(100vw - 2 * var(--gap-outer), 1200px)) / 7.9));
   }
 
   .mirror--small {
-    font-size: min(6.5rem, calc((min(100vw, 1200px) - 2 * var(--gutter)) / 16));
+    font-size: min(6.5rem, calc((min(100vw, 1200px) - 2 * var(--gap-outer)) / 16));
   }
 
   .mirror__h1 {
@@ -57,6 +56,11 @@ const {
     width: var(--w);
     white-space: nowrap;
     clip-path: inset(0 calc(100% - var(--x)) 0 0);
+    color: var(--blue);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .mirror__image {
@@ -68,20 +72,23 @@ const {
     transform-origin: 0 50%;
     transform: translateX(calc(var(--x) * 2)) scaleX(-1);
     clip-path: inset(0 calc(100% - var(--x)) 0 0);
-    color: var(--ink);
-    opacity: 0.9;
-    background: linear-gradient(90deg, currentColor, color-mix(in srgb, currentColor 55%, var(--paper)));
+    color: var(--blue);
+    opacity: 0.35;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.15) 100%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.15) 100%);
     pointer-events: none;
   }
 
   @supports not (background-clip: text) {
+    .mirror__word,
     .mirror__image {
       background: none;
       -webkit-text-fill-color: initial;
-      color: var(--ink);
+      color: var(--blue);
     }
   }
 
@@ -91,7 +98,8 @@ const {
     top: -0.15em;
     bottom: -0.15em;
     width: 2px;
-    background: linear-gradient(to bottom, transparent, var(--signal) 15%, var(--signal) 85%, transparent);
+    background: var(--pink);
+    box-shadow: 0 0 10px var(--pink), 0 0 20px rgb(238 83 150 / 0.4);
     transform: translateX(var(--x));
     pointer-events: none;
   }
