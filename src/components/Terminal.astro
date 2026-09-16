@@ -105,10 +105,9 @@ import Window from './Window.astro';
 
   /* Log styles */
   :global(.term__line) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-    align-items: baseline;
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   :global(.term__line .bold) { font-weight: 700; }

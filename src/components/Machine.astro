@@ -129,15 +129,15 @@ const swatchAccentMap: Record<string, string> = {
 
       <!-- Keybinds Window -->
       <Window title="keybinds" app="hypr-keybind-overlay" class="machine__win-keys" i={2}>
-        <div class="keybinds-panel">
-          <div class="keybinds-panel__grid">
-            {keybindRows.map((r) => (
-              <div class="keybinds-panel__row">
+        <div class="keybinds-panel" role="list">
+          {keybindRows.map((r) => (
+            <div class="keybinds-panel__row" role="listitem">
+              <span class="keybinds-panel__key-slot">
                 <kbd class="keybinds-panel__key">{r.key}</kbd>
-                <span class="keybinds-panel__action">{r.action}</span>
-              </div>
-            ))}
-          </div>
+              </span>
+              <span class="keybinds-panel__action">{r.action}</span>
+            </div>
+          ))}
         </div>
       </Window>
     </div>
@@ -473,27 +473,28 @@ const swatchAccentMap: Record<string, string> = {
   .keybinds-panel {
     display: flex;
     flex-direction: column;
-  }
-
-  .keybinds-panel__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px 16px;
-  }
-
-  @media (max-width: 500px) {
-    .keybinds-panel__grid {
-      grid-template-columns: 1fr;
-    }
+    width: 100%;
   }
 
   .keybinds-panel__row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    gap: 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--base02);
     font-family: var(--font-mono);
     font-size: 12px;
+  }
+
+  .keybinds-panel__row:last-child {
+    border-bottom: none;
+  }
+
+  .keybinds-panel__key-slot {
+    width: 64px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
   }
 
   .keybinds-panel__key {

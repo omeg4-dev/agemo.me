@@ -99,18 +99,24 @@ const { name, accent = 'var(--accent)' } = Astro.props;
 <style>
   .demo-slot {
     margin-top: auto;
-    padding-top: 16px;
+    padding-top: 12px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
   }
 
   /* hypr-keybind-overlay preview */
   .demo-keybinds {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     background: var(--base00);
-    padding: 12px;
+    padding: 14px;
     border-radius: 8px;
     border: 1px solid var(--base02);
+    width: 100%;
   }
 
   .demo-kb-row {
@@ -180,11 +186,13 @@ const { name, accent = 'var(--accent)' } = Astro.props;
   .demo-gamehub {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
+    width: 100%;
   }
 
   .demo-tv {
     flex: 1;
+    width: 100%;
     aspect-ratio: 16 / 9;
     background: var(--base00);
     border: 2px solid var(--base03);
@@ -212,6 +220,17 @@ const { name, accent = 'var(--accent)' } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  @media (max-width: 520px) {
+    .demo-gamehub {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .demo-phones {
+      flex-direction: row;
+      gap: 12px;
+    }
   }
 
   .demo-phone {

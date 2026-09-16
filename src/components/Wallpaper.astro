@@ -12,7 +12,7 @@
   .wallpaper {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
     overflow: hidden;
     background: var(--base00);
@@ -27,10 +27,11 @@
   .wallpaper__blobs {
     position: absolute;
     inset: -40px;
+    pointer-events: auto;
     background:
-      radial-gradient(45vmax 45vmax at 18% 22%, rgb(120 169 255 / 0.18), transparent 70%),
-      radial-gradient(45vmax 45vmax at 82% 30%, rgb(190 149 255 / 0.18), transparent 70%),
-      radial-gradient(45vmax 45vmax at 60% 88%, rgb(238 83 150 / 0.18), transparent 70%);
+      radial-gradient(45vmax 45vmax at 18% 22%, rgb(120 169 255 / 0.32), transparent 70%),
+      radial-gradient(45vmax 45vmax at 82% 30%, rgb(190 149 255 / 0.30), transparent 70%),
+      radial-gradient(45vmax 45vmax at 60% 88%, rgb(238 83 150 / 0.30), transparent 70%);
     transform: translate3d(calc(var(--px, 0) * -14px), calc(var(--py, 0) * -10px), 0);
   }
 

@@ -33,7 +33,12 @@ const {
   }
 
   .mirror--hero {
-    font-size: min(13rem, calc((min(100vw - 2 * var(--gap-outer), 1200px)) / 7.9));
+    font-size: calc((100vw - 2 * var(--gap-outer)) * 0.62 / 7.85);
+  }
+  @supports (container-type: inline-size) {
+    .mirror--hero {
+      font-size: min(9.5rem, calc(100cqw / 7.85));
+    }
   }
 
   .mirror--small {
@@ -73,7 +78,7 @@ const {
     transform: translateX(calc(var(--x) * 2)) scaleX(-1);
     clip-path: inset(0 calc(100% - var(--x)) 0 0);
     color: var(--blue);
-    opacity: 0.35;
+    opacity: 0.55;
     background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
     -webkit-background-clip: text;
     background-clip: text;

@@ -25,30 +25,48 @@ import site from '../config/site.mjs';
   <main class="desktop-main">
     <!-- WS1 Home -->
     <section class="ws-home" id="ws-home" data-ws data-hero>
-      <div class="ws-home__art wrap">
-        <Mirror word="OMEGA" ariaLabel="Omega" variant="hero" />
-        <p class="ws-home__tagline hero__tagline">{site.tagline}</p>
-      </div>
-
-      <div class="ws-home__windows">
-        <Window title="now" app="lanyard" class="now-win" i={0}>
-          <div class="now" data-presence data-discord-id={site.discordId}>
-            <div class="now__row">
-              <span class="now__dot" aria-hidden="true"></span>
-              <span class="now__state" data-presence-state data-state="offline">checking…</span>
-            </div>
-            <div class="now__act">
-              <span class="now__label">activity:</span>
-              <span class="now__val" data-presence-activity>—</span>
-            </div>
-            <div class="now__time-row">
-              <span class="now__label">clock:</span>
-              <span class="now__val" data-clock>—</span>
+      <div class="ws-home__grid">
+        <div class="ws-home__left wrap">
+          <div class="ws-home__art">
+            <Mirror word="OMEGA" ariaLabel="Omega" variant="hero" />
+            <p class="ws-home__tagline hero__tagline">{site.tagline}</p>
+            <div class="ws-home__chips" role="toolbar" aria-label="Quick actions">
+              <button class="ws-home__chip" type="button" data-chip="search" aria-label="Open search launcher">
+                <kbd class="ws-home__chip-key">/</kbd>
+                <span class="ws-home__chip-label">search</span>
+              </button>
+              <button class="ws-home__chip" type="button" data-chip="keys" aria-label="Show keyboard shortcuts">
+                <kbd class="ws-home__chip-key">?</kbd>
+                <span class="ws-home__chip-label">keys</span>
+              </button>
+              <button class="ws-home__chip" type="button" data-chip="terminal" aria-label="Focus terminal">
+                <kbd class="ws-home__chip-key">t</kbd>
+                <span class="ws-home__chip-label">terminal</span>
+              </button>
             </div>
           </div>
-        </Window>
+        </div>
 
-        <Terminal />
+        <div class="ws-home__right">
+          <Window title="now" app="lanyard" class="now-win" i={0}>
+            <div class="now" data-presence data-discord-id={site.discordId}>
+              <div class="now__row">
+                <span class="now__dot" aria-hidden="true"></span>
+                <span class="now__state" data-presence-state data-state="offline">checking…</span>
+              </div>
+              <div class="now__act">
+                <span class="now__label">activity:</span>
+                <span class="now__val" data-presence-activity>—</span>
+              </div>
+              <div class="now__time-row">
+                <span class="now__label">clock:</span>
+                <span class="now__val" data-clock>—</span>
+              </div>
+            </div>
+          </Window>
+
+          <Terminal />
+        </div>
       </div>
     </section>
 
@@ -68,6 +86,8 @@ import site from '../config/site.mjs';
 
 <style>
   .desktop-main {
+    position: relative;
+    z-index: 1;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -91,16 +111,29 @@ import site from '../config/site.mjs';
     }
   }
 
-  .wrap {
-    width: 100%;
-    max-width: 1200px;
-    padding-inline: 0;
-  }
-
   /* WS1 Layout */
   .ws-home {
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ws-home__grid {
+    display: grid;
+    width: 100%;
+    align-items: center;
+    gap: var(--gap-inner);
+    z-index: 2;
+  }
+
+  .ws-home__left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    container-type: inline-size;
   }
 
   .ws-home__art {
@@ -109,45 +142,169 @@ import site from '../config/site.mjs';
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding-top: clamp(1rem, 4vh, 3rem);
+    gap: clamp(0.75rem, 1.5vh, 1.5rem);
+    width: 100%;
   }
 
   .ws-home__tagline {
-    margin-top: clamp(1rem, 2vh, 1.75rem);
+    margin: 0;
     font-family: var(--font-body);
-    font-size: clamp(1.1rem, 1rem + 0.8vw, 1.6rem);
+    font-size: clamp(1rem, 0.95rem + 0.6vw, 1.4rem);
     color: var(--base04);
-    max-width: 60ch;
+    max-width: 54ch;
     line-height: 1.45;
   }
 
-  .ws-home__windows {
+  .ws-home__chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+
+  .ws-home__chip {
+    height: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding-inline: 14px;
+    background: var(--base01);
+    border: 1px solid var(--base02);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+  }
+
+  .ws-home__chip:hover,
+  .ws-home__chip:focus-visible {
+    background: var(--base02);
+    border-color: var(--accent);
+  }
+
+  .ws-home__chip-key {
+    padding: 2px 6px;
+    background: var(--base00);
+    border: 1px solid var(--base03);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12px;
+  }
+
+  .ws-home__chip-label {
+    color: var(--base04);
+  }
+
+  .ws-home__right {
     display: flex;
     flex-direction: column;
     gap: var(--gap-inner);
-    z-index: 2;
+    min-width: 0;
   }
 
+  /* Desktop ≥ 1100px: 2 columns: left ≈ 62%, right ≈ 38% */
   @media (min-width: 1100px) {
-    .ws-home__windows {
-      position: absolute;
-      right: var(--gap-outer);
-      top: calc(44px + 2 * var(--gap-outer));
-      bottom: var(--gap-outer);
-      justify-content: space-between;
-      align-items: flex-end;
-      pointer-events: none;
+    .ws-home {
+      height: 100vh;
+      height: 100svh;
+      max-height: 100vh;
+      max-height: 100svh;
     }
 
-    .ws-home__windows > :global(*) {
-      pointer-events: auto;
+    .ws-home__grid {
+      grid-template-columns: 62% calc(38% - var(--gap-inner));
+      height: 100%;
+    }
+
+    .ws-home__left {
+      height: 100%;
+    }
+
+    .ws-home__right {
+      height: 100%;
+      max-height: calc(100vh - 44px - 3 * var(--gap-outer));
+      max-height: calc(100svh - 44px - 3 * var(--gap-outer));
+      justify-content: center;
+    }
+
+    .now-win {
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    :global(.term-win) {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      height: auto !important;
+      max-height: 440px;
     }
   }
 
-  @media (max-width: 1099px) {
-    .ws-home__windows {
-      margin-top: 32px;
+  /* Tablet 700–1099px: word + tagline + chips full width, then now and terminal side by side */
+  @media (min-width: 700px) and (max-width: 1099px) {
+    .ws-home__grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .ws-home__left {
       width: 100%;
+    }
+
+    .ws-home__right {
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) 1fr;
+      gap: var(--gap-inner);
+      align-items: stretch;
+    }
+
+    .now-win {
+      width: 100%;
+      max-width: none;
+    }
+
+    :global(.term-win) {
+      width: 100%;
+      max-width: none;
+      height: 360px;
+    }
+  }
+
+  /* Mobile < 700px: stacked */
+  @media (max-width: 699px) {
+    .ws-home__grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .ws-home__left {
+      width: 100%;
+    }
+
+    .ws-home__right {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap-inner);
+      width: 100%;
+    }
+
+    .now-win {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    :global(.term-win) {
+      width: 100%;
+      max-width: 100%;
+      height: 360px;
     }
   }
 
@@ -219,4 +376,23 @@ import site from '../config/site.mjs';
   initScroll();
   initMirrorLine();
   initPresence();
+
+  // WS1 action chips
+  document.querySelectorAll('[data-chip]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = btn.getAttribute('data-chip');
+      if (action === 'search') {
+        window.dispatchEvent(new CustomEvent('agemo:launcher'));
+      } else if (action === 'keys') {
+        window.dispatchEvent(new CustomEvent('agemo:keys'));
+      } else if (action === 'terminal') {
+        const termInput = document.querySelector('.term__input');
+        if (termInput) {
+          const ws1 = document.getElementById('ws-home');
+          if (ws1) ws1.scrollIntoView({ behavior: 'smooth' });
+          termInput.focus();
+        }
+      }
+    });
+  });
 </script>

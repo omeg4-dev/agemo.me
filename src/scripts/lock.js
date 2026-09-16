@@ -36,12 +36,15 @@ function setInert(state) {
   });
 }
 
+let unlockViaKey = false;
+
 export function unlock() {
   if (isUnlocking) return;
   const overlay = document.getElementById('lock-screen') || lockOverlay;
   if (!overlay) return;
 
   isUnlocking = true;
+  document.documentElement.classList.add('unlocking');
   overlay.classList.add('unlocking');
 
   try {
@@ -51,17 +54,36 @@ export function unlock() {
   setInert(false);
 
   setTimeout(() => {
-    document.documentElement.classList.remove('locked');
+    document.documentElement.classList.remove('locked', 'unlocking');
     lockOverlay = overlay;
     overlay.remove();
     isUnlocking = false;
 
-    // Focus first focusable element in the bar
-    const bar = document.getElementById('bar');
-    if (bar) {
-      const firstFocusable = bar.querySelector('a, button');
-      if (firstFocusable) firstFocusable.focus();
+    // Focus target: badge on key unlock, suppressed outline tabindex -1 on pointer/wheel unlock
+    if (unlockViaKey) {
+      const bar = document.getElementById('bar');
+      if (bar) {
+        const badge = bar.querySelector('.bar__badge');
+        if (badge) badge.focus();
+      }
+    } else {
+      let unfocus = document.getElementById('unfocus-target');
+      if (!unfocus) {
+        unfocus = document.createElement('div');
+        unfocus.id = 'unfocus-target';
+        unfocus.tabIndex = -1;
+        unfocus.style.position = 'fixed';
+        unfocus.style.top = '0';
+        unfocus.style.left = '0';
+        unfocus.style.width = '0';
+        unfocus.style.height = '0';
+        unfocus.style.outline = 'none';
+        unfocus.setAttribute('aria-hidden', 'true');
+        document.body.prepend(unfocus);
+      }
+      unfocus.focus({ preventScroll: true });
     }
+    unlockViaKey = false;
 
     // Signal unlock to wallpaper mirror and terminal
     window.dispatchEvent(new CustomEvent('agemo:unlocked'));
@@ -98,6 +120,7 @@ export function showLock() {
 let eventsBound = false;
 function bindEvents(overlay) {
   const onTrigger = () => {
+    unlockViaKey = false;
     unlock();
   };
 
@@ -113,17 +136,20 @@ function bindEvents(overlay) {
     // Enter, Space, Escape, or any printable key
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape' || e.key.length === 1) {
       e.preventDefault();
+      unlockViaKey = true;
       unlock();
     }
   };
 
   const onWheel = () => {
     if (!document.documentElement.classList.contains('locked')) return;
+    unlockViaKey = false;
     unlock();
   };
 
   const onTouch = () => {
     if (!document.documentElement.classList.contains('locked')) return;
+    unlockViaKey = false;
     unlock();
   };
 

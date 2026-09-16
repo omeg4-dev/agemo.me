@@ -219,19 +219,19 @@ export function initTerminal(root) {
     if (isRed) {
       appendExecutedPrompt(cmdStr);
       appendLineToLog([
-        { text: 'os:     ', cls: 'cyan' },
+        { text: 'os: ', cls: 'cyan' },
         { text: 'CachyOS x86_64', cls: 'text' },
       ]);
       appendLineToLog([
-        { text: 'wm:     ', cls: 'purple' },
+        { text: 'wm: ', cls: 'purple' },
         { text: 'Hyprland 0.56.0 (Wayland)', cls: 'text' },
       ]);
       appendLineToLog([
-        { text: 'shell:  ', cls: 'green' },
+        { text: 'shell: ', cls: 'green' },
         { text: 'zsh 5.9.2', cls: 'text' },
       ]);
       appendLineToLog([
-        { text: 'cpu:    ', cls: 'rose' },
+        { text: 'cpu: ', cls: 'rose' },
         { text: 'AMD Ryzen 7 5700X (16) @ 4.67 GHz', cls: 'text' },
       ]);
       appendLineToLog([
@@ -281,19 +281,19 @@ export function initTerminal(root) {
         setTimeout(typeNextChar, 28);
       } else {
         appendLineToLog([
-          { text: 'os:     ', cls: 'cyan' },
+          { text: 'os: ', cls: 'cyan' },
           { text: 'CachyOS x86_64', cls: 'text' },
         ]);
         appendLineToLog([
-          { text: 'wm:     ', cls: 'purple' },
+          { text: 'wm: ', cls: 'purple' },
           { text: 'Hyprland 0.56.0 (Wayland)', cls: 'text' },
         ]);
         appendLineToLog([
-          { text: 'shell:  ', cls: 'green' },
+          { text: 'shell: ', cls: 'green' },
           { text: 'zsh 5.9.2', cls: 'text' },
         ]);
         appendLineToLog([
-          { text: 'cpu:    ', cls: 'rose' },
+          { text: 'cpu: ', cls: 'rose' },
           { text: 'AMD Ryzen 7 5700X (16) @ 4.67 GHz', cls: 'text' },
         ]);
         appendLineToLog([

@@ -171,7 +171,7 @@ export function initMirrorLine() {
   }
 
   onPointerMove((e) => {
-    if (reduced() || !finePointer() || introRunning) return;
+    if (reduced() || !finePointer()) return;
     if (e.clientX === 0 && e.clientY === 0) {
       if (isHovering) {
         isHovering = false;
@@ -189,6 +189,7 @@ export function initMirrorLine() {
     );
 
     if (inStage) {
+      if (introRunning) introRunning = false;
       isHovering = true;
       const wordRect = word.getBoundingClientRect();
       const rawX = e.clientX - wordRect.left;
