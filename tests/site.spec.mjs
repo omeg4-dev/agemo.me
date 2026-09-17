@@ -1824,3 +1824,33 @@ test('@shots generate evaluation screenshots', async ({ page }) => {
   await page.waitForTimeout(200);
   await page.screenshot({ path: '/tmp/agemo-shots/terminal-easter-eggs.png' });
 });
+
+test('after a real unlock the reflection stays inside the left column', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'two-column home layout is desktop-only');
+  // The word box is sized from --w, so the script once measured its own box
+  // while the lock screen had the page scaled to 1.04 and kept the inflated
+  // width: AGEMO then ran under the terminal window.
+  for (const [width, height] of [[1440, 900], [1280, 800]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await page.evaluate(() => { try { sessionStorage.clear(); } catch {} });
+    await page.goto('/');
+    await expect(page.locator('#lock-unlock-btn')).toBeVisible();
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(2500);
+    const m = await page.evaluate(() => {
+      const mirror = document.querySelector('[data-mirror]');
+      const word = mirror.querySelector('.mirror__word');
+      const range = document.createRange();
+      range.selectNodeContents(word);
+      return {
+        x: parseFloat(getComputedStyle(mirror).getPropertyValue('--x')),
+        glyphs: range.getBoundingClientRect().width,
+        imageRight: mirror.querySelector('.mirror__image').getBoundingClientRect().right,
+        columnRight: document.querySelector('.ws-home__right').getBoundingClientRect().left,
+      };
+    });
+    expect(Math.abs(m.x - m.glyphs), `--x vs glyph width at ${width}`).toBeLessThanOrEqual(2);
+    expect(m.imageRight, `reflection right edge at ${width}`).toBeLessThanOrEqual(m.columnRight);
+  }
+});

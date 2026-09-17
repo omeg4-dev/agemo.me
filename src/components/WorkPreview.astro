@@ -104,7 +104,9 @@ const { name, accent = 'var(--accent)' } = Astro.props;
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    /* Centre the demo in whatever height the tile leaves: flex-end parked the
+       gamehub TV at the bottom of its double-height tile under a big void. */
+    justify-content: center;
   }
 
   /* hypr-keybind-overlay preview */

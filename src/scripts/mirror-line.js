@@ -39,7 +39,18 @@ export function initMirrorLine() {
 
   const stage = mirror.closest('.ws-home__art') || mirror.closest('[data-hero]') || mirror.parentElement || mirror;
 
-  let w = word.getBoundingClientRect().width;
+  // The word's box is sized from --w, so measuring the box would just read --w
+  // back. Measure the glyphs instead, and divide out any ancestor transform
+  // (the lock screen scales the page to 1.04), or the scale gets baked into --w.
+  function textWidth() {
+    const box = word.getBoundingClientRect();
+    if (!box.width || !word.offsetWidth) return 0;
+    const range = document.createRange();
+    range.selectNodeContents(word);
+    return range.getBoundingClientRect().width * (word.offsetWidth / box.width);
+  }
+
+  let w = textWidth() || word.getBoundingClientRect().width;
   let currentX = w;
   let targetX = w;
   let introRunning = false;
@@ -55,9 +66,9 @@ export function initMirrorLine() {
   }
 
   function measure() {
-    const rect = word.getBoundingClientRect();
-    if (rect.width > 0) {
-      w = rect.width;
+    const measured = textWidth();
+    if (measured > 0) {
+      w = measured;
       mirror.style.setProperty('--w', `${w.toFixed(2)}px`);
       if (reduced()) {
         setX(w);
