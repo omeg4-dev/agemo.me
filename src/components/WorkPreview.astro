@@ -1,0 +1,979 @@
+---
+// WorkPreview.astro: Phase-A static demo previews for pinned repositories
+interface Props {
+  name: string;
+  accent?: string;
+}
+
+const { name, accent = 'var(--accent)' } = Astro.props;
+---
+<div class="demo-slot" data-demo={name} style={`--repo-accent: ${accent};`}>
+  {name === 'hypr-keybind-overlay' && (
+    <div class="demo-keybinds" aria-hidden="true">
+      <div class="demo-kb-row">
+        <span class="demo-key demo-key--mod">SUPER</span>
+        <span class="demo-key demo-key--act">Q</span>
+        <span class="demo-key">W</span>
+        <span class="demo-key demo-key--act">E</span>
+        <span class="demo-key">R</span>
+        <span class="demo-key">T</span>
+      </div>
+      <div class="demo-kb-row">
+        <span class="demo-key demo-key--mod">SUPER</span>
+        <span class="demo-key demo-key--act">1</span>
+        <span class="demo-key">2</span>
+        <span class="demo-key">3</span>
+        <span class="demo-key">4</span>
+        <span class="demo-key">5</span>
+      </div>
+    </div>
+  )}
+
+  {name === 'magpie' && (
+    <div class="demo-magpie" aria-hidden="true">
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">paru -Syu</span>
+        <span class="demo-clip-time">2m</span>
+      </div>
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">hyprctl reload</span>
+        <span class="demo-clip-time">9m</span>
+      </div>
+      <div class="demo-clip-card">
+        <span class="demo-clip-text">#78a9ff</span>
+        <span class="demo-clip-time">1h</span>
+      </div>
+    </div>
+  )}
+
+  {name === 'gamehub' && (
+    <div class="demo-gamehub" aria-hidden="true">
+      <div class="demo-tv">
+        <div class="demo-tv__screen">
+          <div class="demo-tv__stars"></div>
+          <div class="demo-tv__player">▲</div>
+        </div>
+      </div>
+      <div class="demo-phones">
+        <div class="demo-phone">
+          <svg viewBox="0 0 24 24" width="20" height="20" class="demo-qr">
+            <rect x="2" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="16" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="2" y="16" width="6" height="6" fill="currentColor"/>
+            <rect x="10" y="6" width="4" height="4" fill="currentColor"/>
+            <rect x="10" y="14" width="4" height="4" fill="currentColor"/>
+            <rect x="16" y="16" width="4" height="4" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="demo-phone">
+          <svg viewBox="0 0 24 24" width="20" height="20" class="demo-qr">
+            <rect x="2" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="16" y="2" width="6" height="6" fill="currentColor"/>
+            <rect x="2" y="16" width="6" height="6" fill="currentColor"/>
+            <rect x="10" y="8" width="4" height="4" fill="currentColor"/>
+            <rect x="14" y="12" width="4" height="4" fill="currentColor"/>
+            <rect x="16" y="16" width="4" height="4" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {name === 'mc-jukebox' && (
+    <div class="demo-jukebox" aria-hidden="true">
+      <div class="demo-disc">
+        <div class="demo-disc__center"></div>
+      </div>
+      <div class="demo-pill">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="demo-note">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span>now playing</span>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .demo-slot {
+    margin-top: auto;
+    padding-top: 12px;
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* Centre the demo in whatever height the tile leaves: flex-end parked the
+       gamehub TV at the bottom of its double-height tile under a big void. */
+    justify-content: center;
+  }
+
+  /* hypr-keybind-overlay preview */
+  .demo-keybinds {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--base00);
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid var(--base02);
+    width: 100%;
+  }
+
+  .demo-kb-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .demo-key {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: var(--base01);
+    border: 1px solid var(--base03);
+    border-radius: 4px;
+    color: var(--base04);
+  }
+
+  .demo-key--mod {
+    border-color: var(--base02);
+    color: var(--text-dim);
+  }
+
+  .demo-key--act {
+    border-color: var(--repo-accent);
+    color: var(--repo-accent);
+    box-shadow: 0 0 8px rgb(120 169 255 / 0.2);
+  }
+
+  /* magpie preview */
+  .demo-magpie {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .demo-clip-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-left: 3px solid var(--repo-accent);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .demo-clip-text {
+    color: var(--base04);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .demo-clip-time {
+    color: var(--text-dim);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  /* gamehub preview */
+  .demo-gamehub {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .demo-tv {
+    flex: 1;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--base00);
+    border: 2px solid var(--base03);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .demo-tv__screen {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, #1f2839, #0d1117);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .demo-tv__player {
+    font-size: 18px;
+    color: var(--repo-accent);
+  }
+
+  .demo-phones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  @media (max-width: 520px) {
+    .demo-gamehub {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .demo-phones {
+      flex-direction: row;
+      gap: 12px;
+    }
+  }
+
+  .demo-phone {
+    width: 32px;
+    height: 48px;
+    border: 1.5px solid var(--base03);
+    border-radius: 6px;
+    background: var(--base01);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--repo-accent);
+  }
+
+  /* mc-jukebox preview */
+  .demo-jukebox {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-radius: 8px;
+  }
+
+  .demo-disc {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #111, #333, #111, #444, #111);
+    border: 2px solid var(--base03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.5);
+    flex-shrink: 0;
+  }
+
+  .demo-disc__center {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--repo-accent);
+    border: 2px solid #111;
+  }
+
+  .demo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--base01);
+    border: 1px solid var(--base03);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--base04);
+  }
+
+  .demo-note {
+    color: var(--repo-accent);
+  }
+
+  /* Live Demos Global Styles */
+  :global(.live-kb) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  :global(.live-kb__toggles) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :global(.live-kb__chip) {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid var(--base02);
+    background: var(--base01);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 120ms;
+    box-sizing: border-box;
+  }
+
+  :global(.live-kb__chip.is-active) {
+    background: var(--base02);
+    border-color: var(--repo-accent);
+    color: var(--repo-accent);
+  }
+
+  :global(.live-kb__example-tag) {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  :global(.live-kb__board) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--base00);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--base02);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  :global(.live-kb__row) {
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    gap: 3px;
+    width: 100%;
+  }
+
+  @media (max-width: 479px) {
+    :global(.live-kb__row--nums) {
+      display: none;
+    }
+  }
+
+  :global(.live-kb__key) {
+    position: relative;
+    height: 26px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--base01);
+    border: 1px solid var(--base03);
+    border-radius: 3px;
+    color: var(--base04);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    user-select: none;
+    transition: background 60ms, transform 60ms, border-color 60ms;
+  }
+
+  :global(.live-kb__key:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    z-index: 2;
+  }
+
+  :global(.live-kb__key.is-bound) {
+    border-color: var(--repo-accent);
+    color: var(--repo-accent);
+  }
+
+  :global(.live-kb__key.is-lit),
+  :global(.live-kb__key.is-pressed) {
+    background: var(--accent) !important;
+    color: #161616 !important;
+    border-color: var(--accent) !important;
+    transform: translateY(1px);
+  }
+
+  :global(.live-kb__dot) {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  :global(.live-kb__caption) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    min-height: 18px;
+    padding-inline: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Live Magpie */
+  :global(.live-magpie) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  :global(.live-magpie__search-wrap) {
+    width: 100%;
+  }
+
+  :global(.live-magpie__search) {
+    width: 100%;
+    height: 32px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-radius: 4px;
+    padding: 0 10px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+
+  :global(.live-magpie__search:focus) {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  :global(.live-magpie__list) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  :global(.live-magpie__card) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    min-height: 44px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-left: 3px solid var(--repo-accent);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background 120ms;
+  }
+
+  :global(.live-magpie__card:hover),
+  :global(.live-magpie__card:focus-visible) {
+    background: var(--base01);
+  }
+
+  :global(.live-magpie__card:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  :global(.live-magpie__card-left) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  :global(.live-magpie__swatch) {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid var(--base03);
+    flex-shrink: 0;
+  }
+
+  :global(.live-magpie__icon) {
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  :global(.live-magpie__text) {
+    color: var(--base04);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.live-magpie__mark) {
+    background: var(--accent);
+    color: #161616;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  :global(.live-magpie__meta) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  :global(.live-magpie__tag) {
+    background: var(--base01);
+    border: 1px solid var(--base02);
+    border-radius: 3px;
+    padding: 1px 4px;
+    color: var(--text-dim);
+    font-size: 9px;
+  }
+
+  :global(.live-magpie__flash) {
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  :global(.live-magpie__empty) {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  :global(.live-magpie__footer) {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+
+  /* Live GameHub */
+  :global(.live-gamehub) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  :global(.live-gamehub__toggles) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :global(.live-gamehub__chip) {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    border: 1px solid var(--base02);
+    background: var(--base01);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 120ms;
+    box-sizing: border-box;
+  }
+
+  :global(.live-gamehub__chip.is-active) {
+    background: var(--base02);
+    border-color: var(--repo-accent);
+    color: var(--repo-accent);
+  }
+
+  :global(.live-gamehub__arena) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  :global(.live-gamehub__tv) {
+    flex: 1;
+    aspect-ratio: 16 / 9;
+    background: #0d1117;
+    border: 2px solid var(--base03);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+  }
+
+  :global(.live-gamehub__tv:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  :global(.live-gamehub__tv-pre) {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #1f2839, #0d1117);
+  }
+
+  :global(.live-gamehub__play-btn) {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--base01);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms, transform 100ms;
+    box-sizing: border-box;
+  }
+
+  :global(.live-gamehub__play-btn:hover) {
+    background: var(--base02);
+    transform: scale(1.05);
+  }
+
+  :global(.live-gamehub__canvas) {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    display: block;
+  }
+
+  :global(.live-gamehub__phone) {
+    width: 32px;
+    height: 52px;
+    border: 1.5px solid var(--base03);
+    border-radius: 6px;
+    background: var(--base01);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 2px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    user-select: none;
+    transition: border-color 150ms, color 150ms;
+    cursor: ns-resize;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  :global(.live-gamehub__phone.is-active) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--base02);
+  }
+
+  :global(.live-gamehub__phone-screen) {
+    width: 20px;
+    height: 30px;
+    background: var(--base00);
+    border-radius: 3px;
+  }
+
+  :global(.live-gamehub__phone-label) {
+    font-size: 7px;
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    :global(.live-gamehub__arena) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "tv tv"
+        "p1 p2";
+      gap: 12px;
+      justify-items: center;
+      width: 100%;
+    }
+
+    :global(.live-gamehub__tv) {
+      grid-area: tv;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }
+
+    :global(.live-gamehub__phone--left) {
+      grid-area: p1;
+      justify-self: end;
+      margin-right: 8px;
+    }
+
+    :global(.live-gamehub__phone--right) {
+      grid-area: p2;
+      justify-self: start;
+      margin-left: 8px;
+    }
+
+    :global(.live-gamehub__phone) {
+      width: 32px;
+      height: 52px;
+      cursor: ns-resize;
+    }
+  }
+
+  :global(.live-gamehub__status) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    min-height: 16px;
+    text-align: center;
+  }
+
+  :global(.live-gamehub__join) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    justify-content: center;
+  }
+
+  :global(.live-gamehub__join-badge) {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--base01);
+    border: 1px solid var(--base02);
+  }
+
+  /* Live Jukebox */
+  :global(.live-jukebox) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  :global(.live-jukebox__top) {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--base00);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--base02);
+  }
+
+  :global(.live-jukebox__disc) {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #111, #333, #111, #444, #111);
+    border: 2px solid var(--base03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.5);
+    flex-shrink: 0;
+  }
+
+  :global(.live-jukebox__disc.is-spinning) {
+    animation: disc-spin 3.2s linear infinite;
+  }
+
+  @keyframes disc-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.live-jukebox__disc.is-spinning) {
+      animation: none !important;
+    }
+  }
+
+  :global(.live-jukebox__disc-center) {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--repo-accent);
+    border: 2px solid #111;
+  }
+
+  :global(.live-jukebox__meta-col) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  :global(.live-jukebox__title) {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.live-jukebox__sub) {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  :global(.live-jukebox__viz) {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+    margin-top: 6px;
+  }
+
+  :global(.live-jukebox__viz-bar) {
+    flex: 1;
+    height: 100%;
+    background: var(--repo-accent);
+    border-radius: 1px;
+    transform-origin: bottom center;
+    transform: scaleY(0.1);
+    transition: transform 60ms linear;
+  }
+
+  :global(.live-jukebox__controls) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :global(.live-jukebox__ctrl-btn) {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+    min-width: 46px;
+    padding: 0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--base01);
+    border: 1px solid var(--base02);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms;
+  }
+
+  :global(.live-jukebox__ctrl-btn:hover),
+  :global(.live-jukebox__ctrl-btn:focus-visible) {
+    background: var(--base02);
+    border-color: var(--accent);
+  }
+
+  :global(.live-jukebox__ctrl-btn:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  :global(.live-jukebox__play-btn) {
+    color: var(--accent);
+  }
+
+  :global(.live-jukebox__vol-wrap) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  :global(.live-jukebox__vol-icon) {
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  :global(.live-jukebox__vol-slider) {
+    width: 70px;
+    height: 4px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  :global(.live-jukebox__tracklist) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :global(.live-jukebox__track-btn) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    min-height: 46px;
+    box-sizing: border-box;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    transition: background 120ms, border-color 120ms;
+  }
+
+  :global(.live-jukebox__track-btn:hover),
+  :global(.live-jukebox__track-btn:focus-visible) {
+    background: var(--base01);
+  }
+
+  :global(.live-jukebox__track-btn.is-active) {
+    border-color: var(--repo-accent);
+    background: var(--base01);
+    color: var(--repo-accent);
+  }
+
+  :global(.live-jukebox__track-name) {
+    font-weight: 700;
+  }
+
+  :global(.live-jukebox__track-sub) {
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+</style>

@@ -19,7 +19,7 @@ function revealOnEnter() {
         io.unobserve(entry.target);
       }
     },
-    { rootMargin: '0px', threshold: 0.15 },
+    { rootMargin: '0px', threshold: 0.05 },
   );
 
   targets.forEach((el) => io.observe(el));

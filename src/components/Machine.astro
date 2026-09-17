@@ -1,15 +1,31 @@
 ---
+// Machine.astro: Workspace 3 (Machine) - fastfetch system specs, palette, and keybinds
+import Window from './Window.astro';
 import site from '../config/site.mjs';
 
 const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
----
-<section class="machine wrap" id="machine" aria-labelledby="machine-heading" data-reveal>
-  <div class="machine__rule" aria-hidden="true"></div>
-  <header class="machine__head">
-    <p class="section-label">machine</p>
-    <h2 class="section-heading" id="machine-heading">The machine</h2>
-  </header>
 
+const keybindRows = [
+  { key: '1 - 5', action: 'ws 1 - 5' },
+  { key: '/', action: 'launcher' },
+  { key: 'Ctrl K', action: 'launcher' },
+  { key: '?', action: 'keybinds' },
+  { key: 't', action: 'terminal' },
+  { key: 'j / k', action: 'next / prev' },
+  { key: 'Esc', action: 'close' },
+];
+
+const swatchAccentMap: Record<string, string> = {
+  '#4cd9e7': 'cyan',
+  '#e3b5ff': 'purple',
+  '#78a9ff': 'blue',
+  '#95e0a8': 'green',
+  '#ffb4ab': 'rose',
+  '#ee5396': 'pink',
+};
+---
+<section class="machine" id="ws-machine" aria-labelledby="machine-heading" data-ws>
+  <!-- Sprite containing symbols for fastfetch icons -->
   <svg class="machine__sprite" aria-hidden="true" focusable="false" width="0" height="0">
     <defs>
       <g id="ff-gear"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7"/></g>
@@ -34,85 +50,168 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     </defs>
   </svg>
 
-  <div class="ff">
-    <div class="ff__logo" set:html={logo} />
+  <header class="machine__head">
+    <h2 class="section-heading" id="machine-heading">machine</h2>
+    <p class="section-sub">system specifications & desktop setup</p>
+  </header>
 
-    <div class="ff__panel" data-uses>
-      {site.machine.map((section) => (
-        <section class="ff__block" style={`--c: ${section.colour}`}>
-          <h3 class="ff__title">
-            <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${section.icon}`} /></svg>
-            <span>{section.name}</span>
-            <span class="ff__rule" aria-hidden="true"></span>
-          </h3>
+  <div class="machine__layout" id="machine">
+    <!-- Main fastfetch window -->
+    <Window title="fastfetch" app="kitty" class="machine__win-ff" i={0}>
+      <div class="ff">
+        <div class="ff__logo" set:html={logo} />
 
-          <dl class="ff__rows">
-            {section.rows.map((row) => (
-              <div class="ff__row">
-                <dt>
-                  <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${row.icon}`} /></svg>
-                  <span>{row.k}</span>
-                </dt>
-                <dd>{row.v}</dd>
-              </div>
-            ))}
-          </dl>
+        <div class="ff__panel" data-uses>
+          {site.machine.map((section) => (
+            <section class="ff__block" style={`--c: ${section.colour}`}>
+              <h3 class="ff__title">
+                <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${section.icon}`} /></svg>
+                <span>{section.name}</span>
+                <span class="ff__rule" aria-hidden="true"></span>
+              </h3>
 
-          <div class="ff__close" aria-hidden="true"></div>
-        </section>
-      ))}
+              <dl class="ff__rows">
+                {section.rows.map((row) => (
+                  <div class="ff__row">
+                    <dt>
+                      <svg class="ff__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href={`#ff-${row.icon}`} /></svg>
+                      <span>{row.k}</span>
+                    </dt>
+                    <dd>{row.v}</dd>
+                  </div>
+                ))}
+              </dl>
 
-      <ul class="ff__swatches" aria-hidden="true">
-        {site.swatches.map((c, i) => <li style={`--s: ${c}; --i: ${i}`}></li>)}
-      </ul>
+              <div class="ff__close" aria-hidden="true"></div>
+            </section>
+          ))}
+
+          <ul class="ff__swatches" aria-hidden="true">
+            {site.swatches.map((c, i) => <li style={`--s: ${c}; --i: ${i}`}></li>)}
+          </ul>
+        </div>
+      </div>
+
+      <p class="machine__steal">
+        <a href={site.links.github} target="_blank" rel="noopener noreferrer">all of it on github →</a>
+      </p>
+    </Window>
+
+    <!-- Right stack: Palette & Keybinds -->
+    <div class="machine__right-col">
+      <!-- Palette Window -->
+      <Window title="palette" app="noctalia" class="machine__win-palette" i={1}>
+        <div class="palette">
+          <p class="palette__label">accent</p>
+          <div class="palette__swatches">
+            {site.swatches.map((hex) => {
+              const accName = swatchAccentMap[hex] || (hex === '#3a4348' ? 'blue' : (hex === '#dde4e4' ? 'cyan' : ''));
+              const isAccentCapable = Boolean(swatchAccentMap[hex]);
+              return (
+                <div class="palette__item">
+                  <button
+                    class={`palette__btn ${isAccentCapable ? 'is-interactive' : ''}`}
+                    type="button"
+                    style={`--btn-c: ${hex};`}
+                    data-accent-btn={isAccentCapable ? swatchAccentMap[hex] : undefined}
+                    aria-label={isAccentCapable ? `accent: ${swatchAccentMap[hex]}` : `swatch ${hex}`}
+                    aria-pressed="false"
+                  >
+                    <span class="palette__circle"></span>
+                  </button>
+                  <span class="palette__hex">{hex}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Window>
+
+      <!-- Keybinds Window -->
+      <Window title="keybinds" app="hypr-keybind-overlay" class="machine__win-keys" i={2}>
+        <div class="keybinds-panel" role="list">
+          {keybindRows.map((r) => (
+            <div class="keybinds-panel__row" role="listitem">
+              <span class="keybinds-panel__key-slot">
+                <kbd class="keybinds-panel__key">{r.key}</kbd>
+              </span>
+              <span class="keybinds-panel__action">{r.action}</span>
+            </div>
+          ))}
+        </div>
+      </Window>
     </div>
   </div>
-
-  <p class="machine__steal">
-    <a href={site.links.github} target="_blank" rel="noopener noreferrer">all of it on github →</a>
-  </p>
 </section>
 
 <style>
   .machine {
-    padding-block: clamp(5rem, 12vw, 10rem) 0;
-    display: grid;
-    gap: clamp(2.5rem, 6vh, 4rem);
-  }
-
-  .machine__rule {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     width: 100%;
-    height: 1px;
-    background: var(--hairline);
-    margin-bottom: clamp(1rem, 3vh, 2rem);
+    content-visibility: auto;
+    contain-intrinsic-size: 1000px;
   }
 
   .machine__head {
     display: flex;
     flex-direction: column;
-  }
-
-  .section-label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--graphite);
-    margin: 0 0 0.5rem 0;
+    gap: 4px;
+    margin-left: 0;
   }
 
   .section-heading {
     font-family: var(--font-display);
-    font-stretch: 62%;
     font-weight: 800;
-    text-transform: uppercase;
-    font-size: clamp(2.25rem, 7vw, 5.5rem);
-    letter-spacing: -0.01em;
+    font-stretch: 62%;
+    font-size: clamp(3rem, 8vw, 7rem);
     line-height: 0.9;
-    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--blue);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin: 0;
   }
 
+  @supports not (background-clip: text) {
+    .section-heading {
+      background: none;
+      -webkit-text-fill-color: initial;
+      color: var(--blue);
+    }
+  }
+
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .machine__layout {
+    display: grid;
+    gap: var(--gap-inner);
+    width: 100%;
+  }
+
+  @media (min-width: 1100px) {
+    .machine__layout {
+      grid-template-columns: 1.4fr 1fr;
+    }
+  }
+
+  .machine__right-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-inner);
+  }
+
+  /* fastfetch styles inside window */
   .machine__sprite { position: absolute; }
 
   .ff__icon {
@@ -128,19 +227,15 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
   .ff {
     display: grid;
-    gap: clamp(1.5rem, 4vw, 3rem);
+    gap: clamp(1.25rem, 3vw, 2.5rem);
     align-items: center;
     grid-template-columns: 1fr;
-    padding: clamp(1.25rem, 3vw, 2.5rem);
-    border: 1px solid var(--hairline);
-    border-radius: 14px;
-    background: var(--screen);
     color: var(--screen-text);
   }
 
-  @media (min-width: 900px) {
+  @media (min-width: 800px) {
     .ff {
-      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
     }
   }
 
@@ -153,14 +248,8 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     display: block;
     width: 100%;
     height: auto;
-    max-width: min(100%, 22rem);
+    max-width: min(100%, 18rem);
     opacity: 0.9;
-  }
-
-  @media (min-width: 900px) {
-    .ff__logo :global(svg) {
-      max-width: 100%;
-    }
   }
 
   .ff__panel {
@@ -173,7 +262,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
   .ff__block { --c: var(--signal); }
   .ff__block + .ff__block { margin-top: 0.9rem; }
 
-  /* ╭─ icon NAME ─────────  */
+  /* ╭─ icon NAME ───────── */
   .ff__title {
     position: relative;
     display: flex;
@@ -207,7 +296,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
     background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 8%, transparent));
   }
 
-  /* The │ gutter. */
+  /* The │ gutter */
   .ff__rows {
     margin: 0;
     padding-left: 0.9em;
@@ -230,7 +319,7 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
 
   .ff__row dd {
     margin: 0;
-    color: var(--screen-text);
+    color: var(--base04);
     overflow-wrap: anywhere;
   }
 
@@ -276,20 +365,167 @@ const logo = await import('./omega-logo.svg?raw').then((m) => m.default);
   .machine__steal {
     font-family: var(--font-mono);
     font-size: 0.82rem;
+    margin-top: 14px;
   }
 
   .machine__steal a {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
-    padding-inline: 0.2rem;
-    margin-block: -0.85rem;
-    color: var(--graphite);
+    min-height: 48px;
+    min-width: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    color: var(--text-dim);
     text-decoration: none;
+    transition: color var(--dur-1) var(--ease);
   }
 
   .machine__steal a:hover,
   .machine__steal a:focus-visible {
-    color: var(--ink);
+    color: var(--text);
+  }
+
+  /* Palette window styles */
+  .palette {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .palette__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .palette__swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 500px) {
+    .palette__swatches {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+  }
+
+  .palette__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .palette__btn {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: default;
+  }
+
+  .palette__btn.is-interactive {
+    cursor: pointer;
+  }
+
+  .palette__circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--btn-c);
+    border: 2px solid var(--base02);
+    transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+  }
+
+  .palette__btn:hover .palette__circle,
+  .palette__btn:focus-visible .palette__circle {
+    transform: scale(1.15);
+    box-shadow: 0 0 14px var(--btn-c);
+  }
+
+  .palette__btn[aria-pressed='true'] .palette__circle {
+    border-color: #fff;
+    box-shadow: 0 0 16px var(--btn-c);
+    transform: scale(1.1);
+  }
+
+  .palette__hex {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Keybinds panel styles */
+  .keybinds-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .keybinds-panel__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--base02);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .keybinds-panel__row:last-child {
+    border-bottom: none;
+  }
+
+  .keybinds-panel__key-slot {
+    width: 64px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .keybinds-panel__key {
+    padding: 3px 8px;
+    background: var(--base00);
+    border: 1px solid var(--base02);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: inherit;
+    font-weight: 700;
+  }
+
+  .keybinds-panel__action {
+    color: var(--base04);
   }
 </style>
+
+<script>
+  import { setAccent, getAccent } from '../scripts/accent.js';
+
+  // Palette button interactions
+  const pBtns = document.querySelectorAll('[data-accent-btn]');
+  const currentAcc = getAccent();
+  pBtns.forEach((b) => {
+    if (b.getAttribute('data-accent-btn') === currentAcc) {
+      b.setAttribute('aria-pressed', 'true');
+    }
+
+    b.addEventListener('click', () => {
+      const acc = b.getAttribute('data-accent-btn');
+      if (acc) setAccent(acc);
+    });
+  });
+</script>

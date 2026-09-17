@@ -1,0 +1,187 @@
+---
+// Terminal.astro: Interactive terminal window
+import Window from './Window.astro';
+---
+<Window title="omega@cachyos: ~" app="kitty" class="term-win" data-terminal id="term-window">
+  <div class="term">
+    <div class="term__log" role="log" aria-live="polite"></div>
+    <div class="term__input-row">
+      <span class="term__user">omega@cachyos</span>
+      <span class="term__path"> ~ </span>
+      <span class="term__arrow" aria-hidden="true">
+        <svg class="term__arrow-svg" viewBox="0 0 24 24" width="12" height="12">
+          <path d="M8 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+      <input
+        class="term__input"
+        type="text"
+        aria-label="Terminal command"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        enterkeyhint="go"
+      />
+    </div>
+  </div>
+</Window>
+
+<style>
+  .term-win {
+    width: 100%;
+    max-width: 540px;
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .term {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  .term__log {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+
+  .term__input-row,
+  :global(.term__prompt-row) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    white-space: pre-wrap;
+  }
+
+  .term__user,
+  :global(.term__user) {
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .term__path,
+  :global(.term__path) {
+    color: var(--blue);
+    font-weight: 700;
+  }
+
+  .term__arrow,
+  :global(.term__arrow) {
+    color: var(--purple);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  :global(.term__arrow-svg) {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+  }
+
+  .term__input {
+    flex: 1;
+    min-width: 80px;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: var(--text);
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Log styles */
+  :global(.term__line) {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  :global(.term__line .bold) { font-weight: 700; }
+  :global(.term__line .dim) { color: var(--text-dim); }
+  :global(.term__line .text) { color: var(--text); }
+  :global(.term__line .blue) { color: var(--blue); }
+  :global(.term__line .cyan) { color: var(--cyan); }
+  :global(.term__line .purple) { color: var(--purple); }
+  :global(.term__line .pink) { color: var(--pink); }
+  :global(.term__line .rose) { color: var(--rose); }
+  :global(.term__line .green) { color: var(--green); }
+  :global(.term__line .accent) { color: var(--accent); }
+
+  :global(.term__action-btn) {
+    background: none;
+    border: 1px solid var(--base03);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 2px 8px;
+    cursor: pointer;
+    min-height: 28px;
+    margin-top: 4px;
+  }
+  :global(.term__action-btn:hover),
+  :global(.term__action-btn:focus-visible) {
+    border-color: var(--accent);
+    background: rgb(120 169 255 / 0.1);
+  }
+
+  :global(.term__link) {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  const termRoot = document.querySelector('[data-terminal]');
+  if (termRoot) {
+    let loaded = false;
+    const loadTerm = () => {
+      if (loaded) return;
+      loaded = true;
+      import('../scripts/terminal.js').then((m) => m.initTerminal(termRoot));
+    };
+
+    const input = termRoot.querySelector('.term__input');
+    if (input) {
+      input.addEventListener('focus', loadTerm, { once: true });
+    }
+    termRoot.addEventListener('click', loadTerm, { once: true });
+
+    // Load when WS1 is visible and unlocked
+    const setupObserver = () => {
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              loadTerm();
+              io.disconnect();
+            }
+          }
+        }, { threshold: 0.1 });
+        io.observe(termRoot);
+      } else {
+        loadTerm();
+      }
+    };
+
+    if (document.documentElement.classList.contains('locked')) {
+      window.addEventListener('agemo:unlocked', setupObserver, { once: true });
+    } else {
+      setupObserver();
+    }
+  }
+</script>

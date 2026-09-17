@@ -1,10 +1,14 @@
 // The mirror line: drives the signature reflection of OMEGA / 404.
 // Features:
 // - Load intro: unfolds --x from 0 to --w over 1400ms with cubic-bezier(0.22, 1, 0.36, 1)
+// - Waits for unlock if the page starts locked
 // - Desktop fine pointer: --x follows pointer clamped to [0.08*w, w], eased at 18%/frame
 // - Coarse/touch or unhovered: scroll drives --x from w down to 0.5*w over 60% hero height
 // - Reduced motion: no intro, no tracking, no scroll effect; rest state only
 // - Pauses when off-screen via IntersectionObserver
+// - Subscribes to shared frame.js scroll & pointer listeners
+
+import { onScroll, onPointerMove } from './frame.js';
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finePointer = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -33,9 +37,20 @@ export function initMirrorLine() {
   const word = mirror.querySelector('.mirror__word');
   if (!word) return;
 
-  const stage = mirror.closest('[data-hero]') || mirror.parentElement || mirror;
+  const stage = mirror.closest('.ws-home__art') || mirror.closest('[data-hero]') || mirror.parentElement || mirror;
 
-  let w = word.getBoundingClientRect().width;
+  // The word's box is sized from --w, so measuring the box would just read --w
+  // back. Measure the glyphs instead, and divide out any ancestor transform
+  // (the lock screen scales the page to 1.04), or the scale gets baked into --w.
+  function textWidth() {
+    const box = word.getBoundingClientRect();
+    if (!box.width || !word.offsetWidth) return 0;
+    const range = document.createRange();
+    range.selectNodeContents(word);
+    return range.getBoundingClientRect().width * (word.offsetWidth / box.width);
+  }
+
+  let w = textWidth() || word.getBoundingClientRect().width;
   let currentX = w;
   let targetX = w;
   let introRunning = false;
@@ -44,7 +59,6 @@ export function initMirrorLine() {
   let isHovering = false;
   let isIntersecting = true;
   let trackingRaf = 0;
-  let scrollRaf = 0;
 
   function setX(val) {
     currentX = val;
@@ -52,9 +66,9 @@ export function initMirrorLine() {
   }
 
   function measure() {
-    const rect = word.getBoundingClientRect();
-    if (rect.width > 0) {
-      w = rect.width;
+    const measured = textWidth();
+    if (measured > 0) {
+      w = measured;
       mirror.style.setProperty('--w', `${w.toFixed(2)}px`);
       if (reduced()) {
         setX(w);
@@ -76,7 +90,7 @@ export function initMirrorLine() {
     return;
   }
 
-  // IntersectionObserver pauses work when hero is off-screen
+  // IntersectionObserver pauses work when stage is off-screen
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(
       (entries) => {
@@ -86,10 +100,6 @@ export function initMirrorLine() {
             if (trackingRaf) {
               cancelAnimationFrame(trackingRaf);
               trackingRaf = 0;
-            }
-            if (scrollRaf) {
-              cancelAnimationFrame(scrollRaf);
-              scrollRaf = 0;
             }
           }
         }
@@ -115,11 +125,7 @@ export function initMirrorLine() {
     }
   }
 
-  // Load intro starts after document.fonts.ready (capped at 800 ms)
-  const fontTimeout = new Promise((resolve) => setTimeout(resolve, 800));
-  const fontsReady = 'fonts' in document ? document.fonts.ready : Promise.resolve();
-
-  Promise.race([fontsReady, fontTimeout]).then(() => {
+  function runIntro() {
     measure();
     if (reduced()) {
       setX(w);
@@ -136,7 +142,22 @@ export function initMirrorLine() {
         targetX = w;
       }
     }, introDuration + 150);
-  });
+  }
+
+  function scheduleIntro() {
+    const fontTimeout = new Promise((resolve) => setTimeout(resolve, 800));
+    const fontsReady = 'fonts' in document ? document.fonts.ready : Promise.resolve();
+
+    Promise.race([fontsReady, fontTimeout]).then(() => {
+      if (document.documentElement.classList.contains('locked')) {
+        window.addEventListener('agemo:unlocked', runIntro, { once: true });
+      } else {
+        runIntro();
+      }
+    });
+  }
+
+  scheduleIntro();
 
   // Desktop pointer tracking
   function stepTracking() {
@@ -160,52 +181,46 @@ export function initMirrorLine() {
     }
   }
 
-  stage.addEventListener(
-    'pointermove',
-    (e) => {
-      if (reduced() || !finePointer() || introRunning) return;
+  onPointerMove((e) => {
+    if (reduced() || !finePointer()) return;
+    if (e.clientX === 0 && e.clientY === 0) {
+      if (isHovering) {
+        isHovering = false;
+        targetX = w;
+        requestTracking();
+      }
+      return;
+    }
+    const stageRect = stage.getBoundingClientRect();
+    const inStage = (
+      e.clientX >= stageRect.left &&
+      e.clientX <= stageRect.right &&
+      e.clientY >= stageRect.top &&
+      e.clientY <= stageRect.bottom
+    );
+
+    if (inStage) {
+      if (introRunning) introRunning = false;
       isHovering = true;
       const wordRect = word.getBoundingClientRect();
       const rawX = e.clientX - wordRect.left;
       targetX = Math.max(0.08 * w, Math.min(w, rawX));
       requestTracking();
-    },
-    { passive: true },
-  );
-
-  stage.addEventListener(
-    'pointerleave',
-    () => {
-      if (reduced() || !finePointer()) return;
+    } else if (isHovering) {
       isHovering = false;
       targetX = w;
       requestTracking();
-    },
-    { passive: true },
-  );
+    }
+  });
 
-  // Scroll effect for touch/coarse or desktop when not hovering
-  function stepScroll() {
-    scrollRaf = 0;
-    if (!isIntersecting || isHovering || reduced() || introRunning) return;
-
+  onScroll((scrollY) => {
+    if (isHovering || reduced() || introRunning || !isIntersecting) return;
     const heroHeight = stage.offsetHeight || window.innerHeight;
-    const scrollRatio = Math.min(1, Math.max(0, window.scrollY / (heroHeight * 0.6)));
+    const scrollRatio = Math.min(1, Math.max(0, scrollY / (heroHeight * 0.6)));
     const newX = w - scrollRatio * (0.5 * w);
     setX(newX);
     targetX = newX;
-  }
-
-  window.addEventListener(
-    'scroll',
-    () => {
-      if (isHovering || reduced() || introRunning) return;
-      if (!scrollRaf) {
-        scrollRaf = requestAnimationFrame(stepScroll);
-      }
-    },
-    { passive: true },
-  );
+  });
 
   window.addEventListener('resize', measure, { passive: true });
 }

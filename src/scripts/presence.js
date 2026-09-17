@@ -22,23 +22,20 @@ function startClock(el) {
   });
   const tick = () => { el.textContent = `${fmt.format(new Date())} local`; };
   tick();
-  // Never cleared: the clock lives for the life of the page, which never
-  // unmounts this element (static site, no client-side routing). See
-  // Task 8 ledger note — a real teardown path would only matter if this
-  // component could be removed from the DOM without a full page nav.
   setInterval(tick, 30_000);
 }
 
 export async function initPresence() {
-  const root = document.querySelector('[data-presence]');
-  if (!root) return;
+  const roots = document.querySelectorAll('[data-presence]');
+  if (!roots.length) return;
 
-  startClock(root.querySelector('[data-clock]'));
+  roots.forEach((root) => {
+    startClock(root.querySelector('[data-clock]'));
+  });
 
-  const id = root.getAttribute('data-discord-id');
-  const stateEl = root.querySelector('[data-presence-state]');
-  const actEl = root.querySelector('[data-presence-activity]');
-  if (!id || !stateEl || !actEl) return;
+  const firstWithId = Array.from(roots).find((r) => r.getAttribute('data-discord-id'));
+  const id = firstWithId ? firstWithId.getAttribute('data-discord-id') : null;
+  if (!id) return;
 
   try {
     const res = await fetch(`https://api.lanyard.rest/v1/users/${id}`, {
@@ -50,13 +47,32 @@ export async function initPresence() {
     if (!json?.success || !json.data) throw new Error('unexpected payload');
 
     const status = json.data.discord_status ?? 'offline';
-    stateEl.textContent = STATES[status] ?? 'offline';
-    stateEl.setAttribute('data-state', status);
-    actEl.textContent = describe(json.data.activities);
+    const statusText = STATES[status] ?? 'offline';
+    const actText = describe(json.data.activities);
+
+    roots.forEach((root) => {
+      const stateEl = root.querySelector('[data-presence-state]');
+      const actEl = root.querySelector('[data-presence-activity]');
+      if (stateEl) {
+        stateEl.textContent = statusText;
+        stateEl.setAttribute('data-state', status);
+      }
+      if (actEl) {
+        actEl.textContent = actText;
+      }
+    });
   } catch {
-    // Spec §4.3 — degrade silently.
-    stateEl.textContent = 'offline';
-    stateEl.setAttribute('data-state', 'offline');
-    actEl.textContent = 'presence unavailable';
+    // Degrade silently to offline
+    roots.forEach((root) => {
+      const stateEl = root.querySelector('[data-presence-state]');
+      const actEl = root.querySelector('[data-presence-activity]');
+      if (stateEl) {
+        stateEl.textContent = 'offline';
+        stateEl.setAttribute('data-state', 'offline');
+      }
+      if (actEl) {
+        actEl.textContent = 'presence unavailable';
+      }
+    });
   }
 }

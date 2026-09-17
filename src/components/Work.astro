@@ -1,62 +1,203 @@
 ---
-import ProjectCard from './ProjectCard.astro';
-import repos from '../data/repos.json';
+// Work.astro: Workspace 2 (Work) - Dwindle tiling of pinned GitHub repositories
+import Window from './Window.astro';
+import WorkPreview from './WorkPreview.astro';
+import repos from '../data/repos.json' with { type: 'json' };
+import { relativeAge } from '../../scripts/repos-transform.mjs';
 
 const { pinned } = repos;
 ---
-<section class="work wrap" id="work" aria-labelledby="work-heading" data-reveal>
-  <div class="work__rule" aria-hidden="true"></div>
+<section class="work" id="ws-work" aria-labelledby="work-heading" data-ws>
   <header class="work__head">
-    <p class="section-label">work</p>
-    <h2 class="section-heading" id="work-heading">Work</h2>
+    <h2 class="section-heading" id="work-heading">work</h2>
+    <p class="section-sub">4 pinned repos · live data from github</p>
   </header>
 
-  <div class="work__list">
-    {pinned.map((repo, i) => <ProjectCard repo={repo} index={i} />)}
+  <div class="work__grid" id="work">
+    {pinned.map((repo, i) => (
+      <Window
+        title={repo.name}
+        app={repo.language ? repo.language.toLowerCase() : 'repo'}
+        accent={repo.accent}
+        class="work__win"
+        i={i}
+      >
+        <div class="work__card-body">
+          <h3 class="visually-hidden" data-project-name>{repo.name}</h3>
+          <p class="work__desc">{repo.description}</p>
+
+          <div class="work__meta">
+            {repo.language && <span class="work__lang" data-project-lang>{repo.language}</span>}
+            <span class="work__sep">·</span>
+            <span class="work__pushed">
+              pushed <time class="work__date" data-project-age datetime={repo.pushedAt}>{repo.pushedAt ? repo.pushedAt.slice(0, 7) : ''}</time>
+              <span class="work__rel-age">({relativeAge(repo.pushedAt)})</span>
+            </span>
+          </div>
+
+          <a
+            class="work__link"
+            href={repo.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-project
+            aria-label={`open repo ${repo.name}`}
+          >
+            open repo ↗
+          </a>
+
+          <WorkPreview name={repo.name} accent={repo.accent} />
+        </div>
+      </Window>
+    ))}
   </div>
 </section>
 
 <style>
   .work {
-    padding-block: clamp(5rem, 12vw, 10rem) 0;
-    display: grid;
-    gap: clamp(2.5rem, 6vh, 4rem);
-  }
-
-  .work__rule {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     width: 100%;
-    height: 1px;
-    background: var(--hairline);
-    margin-bottom: clamp(1rem, 3vh, 2rem);
   }
 
   .work__head {
     display: flex;
     flex-direction: column;
-  }
-
-  .section-label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--graphite);
-    margin: 0 0 0.5rem 0;
+    gap: 4px;
+    margin-left: 0;
   }
 
   .section-heading {
     font-family: var(--font-display);
-    font-stretch: 62%;
     font-weight: 800;
-    text-transform: uppercase;
-    font-size: clamp(2.25rem, 7vw, 5.5rem);
-    letter-spacing: -0.01em;
+    font-stretch: 62%;
+    font-size: clamp(3rem, 8vw, 7rem);
     line-height: 0.9;
-    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: var(--blue);
+    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin: 0;
   }
 
-  .work__list {
+  @supports not (background-clip: text) {
+    .section-heading {
+      background: none;
+      -webkit-text-fill-color: initial;
+      color: var(--blue);
+    }
+  }
+
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  .work__card-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 12px;
+  }
+
+  .work__desc {
+    font-family: var(--font-body);
+    font-size: clamp(0.95rem, 1vw, 1.05rem);
+    color: var(--base04);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .work__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+
+  .work__lang {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .work__sep {
+    color: var(--base03);
+  }
+
+  .work__rel-age {
+    color: var(--text-dim);
+    opacity: 0.8;
+  }
+
+  .work__link {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    min-height: 48px;
+    min-width: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    transition: color var(--dur-1) var(--ease);
+  }
+
+  .work__link:hover,
+  .work__link:focus-visible {
+    color: var(--accent-2);
+    text-decoration: underline;
+  }
+
+  /* Dwindle grid tiling */
+  .work__grid {
     display: grid;
+    gap: var(--gap-inner);
+    width: 100%;
+  }
+
+  @media (min-width: 1100px) {
+    .work__grid {
+      grid-template-columns: 1.25fr 0.88fr 0.88fr;
+      grid-auto-rows: auto;
+    }
+    .work__win:nth-child(1) {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
+    .work__win:nth-child(2) {
+      grid-column: 2 / span 2;
+      grid-row: 1;
+    }
+    .work__win:nth-child(3) {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .work__win:nth-child(4) {
+      grid-column: 3;
+      grid-row: 2;
+    }
+  }
+
+  @media (min-width: 700px) and (max-width: 1099px) {
+    .work__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 699px) {
+    .work__grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

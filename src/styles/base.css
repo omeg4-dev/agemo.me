@@ -1,25 +1,33 @@
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
 
-.wrap {
-  width: 100%;
-  max-width: 1200px;
-  margin-inline: auto;
-  padding-inline: var(--gutter);
-}
-
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
+  background: var(--base00);
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--base00);
+  color: var(--text);
   font-family: var(--font-body);
   font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+/* While locked, statically blur and scale the page wrapper */
+html.locked:not(.unlocking) main {
+  filter: blur(18px);
+}
+html.locked main {
+  transform: scale(1.04);
+}
+main {
+  position: relative;
+  z-index: 1;
+  transition: transform 550ms var(--ease-out);
 }
 
 img, svg { display: block; max-width: 100%; }
@@ -31,7 +39,7 @@ a {
 }
 
 a:focus-visible, button:focus-visible {
-  outline: 2px solid var(--signal);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -45,6 +53,13 @@ a:focus-visible, button:focus-visible {
   white-space: nowrap;
 }
 
+/* Hyprland @property for animated borderangle */
+@property --angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 45deg;
+}
+
 /*
  * [data-reveal] elements are visible-by-default (no-JS baseline).
  * Only once html.js lands (set by initScroll() in scroll.js) do they
@@ -52,13 +67,14 @@ a:focus-visible, button:focus-visible {
  */
 html.js [data-reveal] {
   opacity: 0;
-  transform: translateY(24px);
+  transform: scale(0.92);
 }
 
 html.js [data-reveal][data-revealed] {
   opacity: 1;
   transform: none;
   transition: opacity var(--dur-3) var(--ease), transform var(--dur-3) var(--ease);
+  transition-delay: calc(var(--i, 0) * 60ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
