@@ -2,44 +2,13 @@
 import reposData from '../data/repos.json' with { type: 'json' };
 import linksData from '../data/links.json' with { type: 'json' };
 import { setAccent } from './accent.js';
+import { fuzzyMatch } from './fuzzy.js';
+import { notify } from './notify.js';
 
 let isLauncherOpen = false;
 let previousFocused = null;
 let activeIdx = 0;
 let currentItems = [];
-
-function fuzzyMatch(query, text) {
-  if (!query) return { score: 1, indices: [] };
-  const q = query.toLowerCase();
-  const t = text.toLowerCase();
-
-  let qIdx = 0;
-  let score = 0;
-  let consecutive = 0;
-  const indices = [];
-
-  for (let i = 0; i < t.length; i++) {
-    if (qIdx < q.length && t[i] === q[qIdx]) {
-      indices.push(i);
-      qIdx++;
-      // Word boundary bonus
-      const isStart = i === 0 || /[\s\-_/.:]/.test(t[i - 1]);
-      if (isStart) score += 15;
-      // Consecutive bonus
-      consecutive++;
-      score += consecutive * 5;
-    } else {
-      consecutive = 0;
-    }
-  }
-
-  if (qIdx === q.length) {
-    // Shorter text penalty
-    score -= t.length;
-    return { score, indices };
-  }
-  return null;
-}
 
 function buildAllItems() {
   const items = [];
@@ -151,15 +120,53 @@ function buildAllItems() {
   }
 
   items.push({
+    id: 'act-inspect-rice',
+    title: 'inspect the rice',
+    sub: 'open keyboard shortcuts overlay',
+    group: 'actions',
+    searchText: 'rice inspect the rice hyprland keybinds shortcuts',
+    run: () => {
+      window.dispatchEvent(new CustomEvent('agemo:keys'));
+    },
+  });
+
+  for (const track of ['omega', 'agemo', 'cachy']) {
+    items.push({
+      id: `act-play-${track}`,
+      title: `play disc · ${track}`,
+      sub: `play chiptune loop disc · ${track}`,
+      group: 'actions',
+      searchText: `play disc · ${track} music chiptune loop jukebox`,
+      run: () => {
+        window.dispatchEvent(new CustomEvent('agemo:jukebox-play', { detail: track }));
+      },
+    });
+  }
+
+  items.push({
+    id: 'act-stop-music',
+    title: 'stop music',
+    sub: 'stop jukebox playback',
+    group: 'actions',
+    searchText: 'stop music pause jukebox audio',
+    run: () => {
+      window.dispatchEvent(new CustomEvent('agemo:jukebox-stop'));
+    },
+  });
+
+  items.push({
     id: 'act-copy-url',
     title: 'copy page url',
     sub: 'copy current page URL to clipboard',
     group: 'actions',
     searchText: 'copy page url share clipboard',
-    run: () => {
+    run: async () => {
+      const url = window.location.href;
       try {
-        navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(url);
       } catch {}
+      document.dispatchEvent(new CustomEvent('agemo:copied', { detail: url }));
+      notify({ title: 'copied to clipboard', body: url, icon: '📋' });
     },
   });
 

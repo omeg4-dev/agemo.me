@@ -1,4 +1,6 @@
 // lock.js: hyprlock session controller
+import { triggerWelcomeToast } from './notify.js';
+
 let lockOverlay = null;
 let isUnlocking = false;
 
@@ -87,6 +89,7 @@ export function unlock() {
 
     // Signal unlock to wallpaper mirror and terminal
     window.dispatchEvent(new CustomEvent('agemo:unlocked'));
+    triggerWelcomeToast();
   }, 550);
 }
 

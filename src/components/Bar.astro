@@ -85,6 +85,20 @@ const isHome = here === 'home';
       </svg>
     </button>
 
+    <div class="bar__jukebox" id="bar-jukebox" style="display: none;">
+      <button class="bar__jukebox-btn" type="button" aria-label="Jump to jukebox" data-jukebox-pill>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bar__jukebox-icon">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span class="bar__jukebox-title" data-jukebox-title>disc · omega</span>
+      </button>
+      <button class="bar__jukebox-stop" type="button" aria-label="Stop jukebox music" data-jukebox-stop>
+        ■
+      </button>
+    </div>
+
     <div class="bar__clock" data-bar-clock>
       <span class="bar__date"></span>
       <span class="bar__time">--:--</span>
@@ -303,6 +317,61 @@ const isHome = here === 'home';
     }
   }
 
+  .bar__jukebox {
+    display: inline-flex;
+    align-items: center;
+    background: var(--base01);
+    border: 1px solid var(--base02);
+    border-radius: 999px;
+    height: 28px;
+    padding: 2px 4px 2px 8px;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .bar__jukebox-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  .bar__jukebox-title {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .bar__jukebox-stop {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bar__jukebox-stop:hover,
+  .bar__jukebox-stop:focus-visible {
+    color: var(--accent);
+    background: var(--base02);
+  }
+
   .bar__clock {
     display: flex;
     align-items: center;
@@ -469,6 +538,39 @@ const isHome = here === 'home';
   if (keysBtn) {
     keysBtn.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('agemo:keys'));
+    });
+  }
+
+  // Jukebox bar widget
+  const jbRoot = document.getElementById('bar-jukebox');
+  const jbTitle = jbRoot ? jbRoot.querySelector('[data-jukebox-title]') : null;
+  const jbPill = jbRoot ? jbRoot.querySelector('[data-jukebox-pill]') : null;
+  const jbStop = jbRoot ? jbRoot.querySelector('[data-jukebox-stop]') : null;
+
+  window.addEventListener('agemo:jukebox-active', (e) => {
+    if (!jbRoot) return;
+    const track = e.detail?.track || 'omega';
+    if (jbTitle) jbTitle.textContent = `disc · ${track}`;
+    jbRoot.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('agemo:jukebox-inactive', () => {
+    if (!jbRoot) return;
+    jbRoot.style.display = 'none';
+  });
+
+  if (jbPill) {
+    jbPill.addEventListener('click', () => {
+      const slot = document.querySelector('[data-demo="mc-jukebox"]');
+      if (slot) {
+        slot.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  }
+
+  if (jbStop) {
+    jbStop.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('agemo:jukebox-stop'));
     });
   }
 </script>

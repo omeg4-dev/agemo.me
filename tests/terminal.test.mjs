@@ -200,6 +200,36 @@ test('unknown command message', () => {
   assert.match(flattenText(res.lines), /zsh: command not found: xyzabc123/);
 });
 
+test('cowsay returns ascii cow with message', () => {
+  const res = run('cowsay moo', mockCtx);
+  const text = flattenText(res.lines);
+  assert.match(text, /< moo >/);
+  assert.match(text, /\(oo\)/);
+});
+
+test('sl returns 3-line train with sl effect', () => {
+  const res = run('sl', mockCtx);
+  assert.equal(res.lines.length, 3);
+  assert.deepEqual(res.effects, [{ type: 'sl' }]);
+});
+
+test('fortune returns a hyprland/linux one-liner', () => {
+  const res = run('fortune', mockCtx);
+  const text = flattenText(res.lines);
+  assert.ok(text.length > 5);
+});
+
+test('play and stop control jukebox', () => {
+  const p1 = run('play', mockCtx);
+  assert.deepEqual(p1.effects, [{ type: 'jukebox-play', track: 'omega' }]);
+
+  const p2 = run('play agemo', mockCtx);
+  assert.deepEqual(p2.effects, [{ type: 'jukebox-play', track: 'agemo' }]);
+
+  const s = run('stop', mockCtx);
+  assert.deepEqual(s.effects, [{ type: 'jukebox-stop' }]);
+});
+
 test('privacy: no command output contains email address (@ followed by domain) or mailto', () => {
   const testCommands = [
     'help', 'whoami', 'hostname', 'uname -a', 'date', 'fastfetch', 'neofetch',

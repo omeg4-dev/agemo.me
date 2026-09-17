@@ -1,7 +1,20 @@
-// keys.js: Global keybinds listener and overlay controller
+// keys.js: Global keybinds listener, subscriber API, and overlay controller
+import { notify } from './notify.js';
 
 let isOverlayOpen = false;
 let previousFocused = null;
+let siteKeysSuspended = false;
+const subscribers = new Set();
+let keyHistory = [];
+
+export function setSiteKeysSuspended(val) {
+  siteKeysSuspended = Boolean(val);
+}
+
+export function subscribeKeys(sub) {
+  subscribers.add(sub);
+  return () => subscribers.delete(sub);
+}
 
 export function openKeysOverlay() {
   const overlay = document.getElementById('keys-overlay');
@@ -60,6 +73,18 @@ export function initKeys() {
     });
   }
 
+  window.addEventListener('keyup', (e) => {
+    for (const sub of subscribers) {
+      if (sub.onKeyUp) sub.onKeyUp(e);
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    for (const sub of subscribers) {
+      if (sub.onBlur) sub.onBlur();
+    }
+  });
+
   window.addEventListener('keydown', (e) => {
     // Ignore while locked
     if (document.documentElement.classList.contains('locked')) return;
@@ -76,11 +101,49 @@ export function initKeys() {
       return;
     }
 
+    // Always notify subscribers for keycap lighting (never preventDefault here)
+    for (const sub of subscribers) {
+      if (sub.onKeyDown) sub.onKeyDown(e);
+    }
+
+    // Easter egg: typing 'agemo' anywhere within 1.5s mirrors <main>
+    if (e.key && e.key.length === 1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const now = Date.now();
+      keyHistory.push({ char: e.key.toLowerCase(), time: now });
+      keyHistory = keyHistory.filter((k) => now - k.time <= 1500);
+      const seq = keyHistory.map((k) => k.char).join('');
+      if (seq.endsWith('agemo')) {
+        keyHistory = [];
+        const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const main = document.querySelector('main');
+        if (!isReduced && main) {
+          main.style.transition = 'transform var(--dur-2) var(--ease)';
+          main.style.transform = 'scaleX(-1)';
+          setTimeout(() => {
+            main.style.transform = '';
+            setTimeout(() => {
+              main.style.transition = '';
+            }, 300);
+          }, 1400);
+        }
+        notify({
+          title: 'omega ⟷ agemo',
+          body: 'palindrome easter egg',
+          icon: '⟷',
+        });
+      }
+    }
+
     if (e.key === 'Escape') {
       if (isOverlayOpen) {
         e.preventDefault();
         closeKeysOverlay();
       }
+      return;
+    }
+
+    // Check if site keybinds are suspended (e.g. game has focus)
+    if (siteKeysSuspended || document.activeElement?.closest('[data-gamehub-tv]')) {
       return;
     }
 

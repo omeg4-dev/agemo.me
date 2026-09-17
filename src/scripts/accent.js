@@ -1,4 +1,6 @@
 // accent.js: Runtime accent switching with localStorage persistence
+import { notify } from './notify.js';
+
 export const ACCENTS = {
   blue: { accent: '#78a9ff', accent2: '#be95ff' },
   cyan: { accent: '#3ddbd9', accent2: '#78a9ff' },
@@ -18,7 +20,7 @@ export function getAccent() {
   return 'blue';
 }
 
-export function setAccent(name) {
+export function setAccent(name, shouldNotify = true) {
   if (!name || !Object.hasOwn(ACCENTS, name)) {
     return false;
   }
@@ -35,6 +37,16 @@ export function setAccent(name) {
   buttons.forEach((btn) => {
     btn.setAttribute('aria-pressed', btn.getAttribute('data-accent-btn') === name ? 'true' : 'false');
   });
+
+  window.dispatchEvent(new CustomEvent('agemo:accent-changed', { detail: name }));
+
+  if (shouldNotify) {
+    notify({
+      title: `accent · ${name}`,
+      body: `theme accent updated to ${name}`,
+      icon: '🎨',
+    });
+  }
 
   return true;
 }

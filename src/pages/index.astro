@@ -372,10 +372,14 @@ import site from '../config/site.mjs';
   import { initScroll } from '../scripts/scroll.js';
   import { initMirrorLine } from '../scripts/mirror-line.js';
   import { initPresence } from '../scripts/presence.js';
+  import { initFloating } from '../scripts/floating.js';
+  import { initDemosLoader } from '../scripts/demos-loader.js';
 
   initScroll();
   initMirrorLine();
   initPresence();
+  initFloating();
+  initDemosLoader();
 
   // WS1 action chips
   document.querySelectorAll('[data-chip]').forEach((btn) => {

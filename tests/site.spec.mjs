@@ -162,13 +162,24 @@ test('reduced motion keeps the mirror line still', async ({ browser }) => {
   await ctx.close();
 });
 
-test('no canvas and no WebGL context is created', async ({ page }) => {
+test('no canvas before interaction, one labelled canvas after play on /, none on /links and 404', async ({ page }) => {
   await unlock(page);
   for (const path of ['/', '/links', '/does-not-exist']) {
     await page.goto(path);
     const canvasCount = await page.locator('canvas').count();
-    expect(canvasCount, `canvas count on ${path}`).toBe(0);
+    expect(canvasCount, `canvas count on ${path} before interaction`).toBe(0);
   }
+
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+  const playBtn = page.locator('.live-gamehub__play-btn');
+  await playBtn.waitFor({ state: 'visible', timeout: 5000 });
+  await playBtn.click();
+
+  const canvas = page.locator('canvas');
+  expect(await canvas.count()).toBe(1);
+  const label = await canvas.getAttribute('aria-label');
+  expect(label).toBe('Paddle duel game');
 });
 
 test('nothing animates infinitely', async ({ page }) => {
@@ -565,12 +576,17 @@ test('every link and button clears the 44px touch minimum', async ({ browser }) 
         await page.locator(s).scrollIntoViewIfNeeded();
         await page.waitForTimeout(100);
       }
+      for (const w of await page.locator('.win').all()) {
+        await w.scrollIntoViewIfNeeded();
+      }
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.waitForTimeout(200);
     }
     const small = await page.evaluate(() => {
       const out = [];
       for (const el of document.querySelectorAll('a, button')) {
+        // WCAG 2.5.8 equivalent-control exception: every bound key action is also a site keybind/launcher action
+        if (el.matches('.live-kb__key')) continue;
         const r = el.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) continue;
         if (r.height < 44 || r.width < 44) {
@@ -1308,6 +1324,301 @@ test('mobile bar items are fully inside the viewport at 320, 360, 390, 414', asy
 });
 
 // ==========================================
+// PART 2 LIVE DEMO TESTS
+// ==========================================
+
+test('keyboard demo: KeyW lights keycap, clicking 2 scrolls, hyprland toggle changes binds, blur clears', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Number row is hidden on mobile screens (<480px) by design');
+  await unlock(page);
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+
+  const kbSlot = page.locator('.demo-slot[data-demo="hypr-keybind-overlay"]');
+  const wKey = kbSlot.locator('[data-code="KeyW"]');
+  await wKey.waitFor({ state: 'visible', timeout: 8000 });
+
+  // Pressing KeyW lights [data-code="KeyW"]
+  await page.keyboard.down('KeyW');
+  await expect(wKey).toHaveClass(/is-lit/);
+  await page.keyboard.up('KeyW');
+  await expect(wKey).not.toHaveClass(/is-lit/);
+
+  // Clicking 2 keycap scrolls to work
+  const twoKey = kbSlot.locator('[data-code="Digit2"]');
+  await twoKey.click();
+  await page.waitForTimeout(400);
+  const scrollY = await page.evaluate(() => window.scrollY);
+  expect(scrollY).toBeGreaterThan(200);
+
+  // Hyprland toggle changes highlighted keys
+  const hyprChip = kbSlot.locator('.live-kb__chip', { hasText: 'hyprland binds' });
+  await hyprChip.click();
+  const qKey = kbSlot.locator('[data-code="KeyQ"]');
+  await expect(qKey).toHaveClass(/is-bound/);
+
+  // Window blur clears any lit keys
+  await page.keyboard.down('KeyW');
+  await expect(wKey).toHaveClass(/is-lit/);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(wKey).not.toHaveClass(/is-lit/);
+});
+
+test('magpie demo: real copy adds clip, search filters, click copies, no storage persistence', async ({ page, browserName, context }) => {
+  if (browserName === 'firefox') {
+    test.skip(true, 'Firefox headless clipboard permission limitations prevent automated copy event readback');
+  }
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await unlock(page);
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+
+  const magSlot = page.locator('.demo-slot[data-demo="magpie"]');
+  const searchInput = magSlot.locator('.live-magpie__search');
+  await searchInput.waitFor({ state: 'visible', timeout: 8000 });
+
+  // Snapshot storage before
+  const storageBefore = await page.evaluate(() => {
+    return {
+      localKeys: Object.keys(localStorage),
+      sessionKeys: Object.keys(sessionStorage),
+    };
+  });
+
+  // Select text in hero and copy
+  const tagline = page.locator('.hero__tagline');
+  const taglineText = (await tagline.innerText()).slice(0, 25);
+  await tagline.click({ clickCount: 3 });
+  await page.keyboard.press('ControlOrMeta+c');
+  await page.waitForTimeout(300);
+
+  // Verify new clip added at top
+  const firstCard = magSlot.locator('.live-magpie__card').first();
+  await expect(firstCard).toContainText(taglineText);
+
+  // Search filters
+  await searchInput.fill('paru');
+  const visibleCards = magSlot.locator('.live-magpie__card');
+  expect(await visibleCards.count()).toBe(1);
+  await expect(visibleCards.first()).toContainText('paru');
+  await searchInput.fill('');
+
+  // Entry click copies
+  const clipToCopy = magSlot.locator('.live-magpie__card', { hasText: 'hyprctl reload' });
+  await clipToCopy.click();
+  await page.waitForTimeout(200);
+  const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+  expect(clipboardText).toBe('hyprctl reload');
+
+  // Verify no magpie keys written to storage
+  const storageAfter = await page.evaluate(() => {
+    return {
+      localKeys: Object.keys(localStorage),
+      sessionKeys: Object.keys(sessionStorage),
+    };
+  });
+  expect(storageAfter.localKeys.some((k) => k.includes('magpie') || k.includes('clip'))).toBe(false);
+  expect(storageAfter.sessionKeys.some((k) => k.includes('magpie') || k.includes('clip'))).toBe(false);
+});
+
+test('gamehub demo: W moves left paddle, Escape pauses, site keys suspended while focused', async ({ page }) => {
+  await unlock(page);
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+
+  const ghSlot = page.locator('.demo-slot[data-demo="gamehub"]');
+  const playBtn = ghSlot.locator('.live-gamehub__play-btn');
+  await playBtn.waitFor({ state: 'visible', timeout: 8000 });
+  await playBtn.click();
+
+  const tv = ghSlot.locator('.live-gamehub__tv');
+  await expect(tv).toBeFocused();
+
+  const initialY = Number(await tv.getAttribute('data-left-y'));
+  // Press W to move paddle up
+  await page.keyboard.press('KeyW');
+  await page.keyboard.press('KeyW');
+  await page.waitForTimeout(100);
+  const movedY = Number(await tv.getAttribute('data-left-y'));
+  expect(movedY).toBeLessThan(initialY);
+
+  // While game is focused, site key '1' is suspended (does not scroll)
+  const preScroll = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press('Digit1');
+  await page.waitForTimeout(200);
+  const postScroll = await page.evaluate(() => window.scrollY);
+  expect(Math.abs(postScroll - preScroll)).toBeLessThan(50);
+
+  // Escape pauses and releases focus
+  await page.keyboard.press('Escape');
+  const statusEl = ghSlot.locator('.live-gamehub__status');
+  await expect(statusEl).toContainText('paused');
+
+  // Site key 1 scrolls again after Escape
+  await page.keyboard.press('Digit1');
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(preScroll);
+});
+
+test('jukebox demo: AudioContext only after play, bar widget toggles, hidden stops, terminal play agemo', async ({ page }) => {
+  // Track AudioContext creations
+  await page.addInitScript(() => {
+    window.__audioCtxCount = 0;
+    const OrigAC = window.AudioContext || window.webkitAudioContext;
+    if (OrigAC) {
+      window.AudioContext = class extends OrigAC {
+        constructor(...args) {
+          super(...args);
+          window.__audioCtxCount++;
+        }
+      };
+    }
+  });
+
+  await unlock(page);
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+
+  const jbSlot = page.locator('.demo-slot[data-demo="mc-jukebox"]');
+  const playBtn = jbSlot.locator('.live-jukebox__play-btn');
+  await playBtn.waitFor({ state: 'visible', timeout: 8000 });
+
+  // No AudioContext before play
+  const ctxCountBefore = await page.evaluate(() => window.__audioCtxCount || 0);
+  expect(ctxCountBefore).toBe(0);
+
+  // Play creates one and bar widget appears
+  await playBtn.click();
+  const ctxCountAfter = await page.evaluate(() => window.__audioCtxCount || 0);
+  expect(ctxCountAfter).toBe(1);
+
+  const barWidget = page.locator('#bar-jukebox');
+  await expect(barWidget).toBeVisible();
+  await expect(barWidget).toContainText('disc · omega');
+
+  // Stop removes widget
+  await playBtn.click();
+  await expect(barWidget).toBeHidden();
+
+  // Play again, then emulate document.hidden
+  await playBtn.click();
+  await expect(barWidget).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(barWidget).toBeHidden();
+
+  // Terminal play agemo starts disc · agemo
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+  });
+  const termInput = page.locator('.term__input');
+  await termInput.click();
+  await termInput.fill('play agemo');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  await expect(barWidget).toBeVisible();
+  await expect(barWidget).toContainText('disc · agemo');
+});
+
+test('notifications: theme green toasts and auto-dismisses, welcome toast fires after unlock', async ({ page }) => {
+  // Fresh session: unlock fires welcome toast
+  await page.goto('/');
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Enter');
+  const toast = page.locator('.toast');
+  await expect(toast).toBeVisible();
+  await expect(toast).toContainText('welcome to cachyos');
+
+  // Terminal theme green toasts
+  const termInput = page.locator('.term__input');
+  await termInput.click();
+  await termInput.fill('theme green');
+  await page.keyboard.press('Enter');
+  const accentToast = page.locator('.toast', { hasText: 'accent · green' });
+  await expect(accentToast).toBeVisible();
+});
+
+test('floating windows: terminal title bar drags within WS1, double-click resets', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Floating windows are desktop-only (width >= 1100px and fine pointer) by spec');
+  await unlock(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const termWin = page.locator('.term-win');
+  const titleBar = termWin.locator('.win__bar');
+  await expect(titleBar).toBeVisible();
+
+  const barBox = await titleBar.boundingBox();
+  expect(barBox).toBeTruthy();
+
+  // Drag 50px down
+  await page.mouse.move(barBox.x + 50, barBox.y + 15);
+  await page.mouse.down();
+  await page.mouse.move(barBox.x + 50, barBox.y + 65);
+  await page.mouse.up();
+
+  const dragY = await termWin.getAttribute('data-drag-y');
+  expect(Number(dragY)).toBeGreaterThan(20);
+
+  // Double click resets position
+  await titleBar.dblclick();
+  await page.waitForTimeout(350);
+  const resetY = await termWin.getAttribute('data-drag-y');
+  expect(Number(resetY)).toBe(0);
+});
+
+test('easter egg: typing agemo mirrors main element', async ({ page }) => {
+  await unlock(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const main = page.locator('main');
+  // Type 'agemo'
+  await page.keyboard.type('agemo', { delay: 60 });
+  await page.waitForTimeout(350);
+
+  const transform = await main.evaluate((el) => getComputedStyle(el).transform);
+  expect(transform).toMatch(/matrix\(-/);
+
+  // Toast is shown
+  const toast = page.locator('.toast', { hasText: 'omega ⟷ agemo' });
+  await expect(toast).toBeVisible();
+});
+
+test('demos lazy: none of demos/*.js requested before scrolling near WS2', async ({ page }) => {
+  await unlock(page);
+  const requestedDemos = [];
+  page.on('request', (req) => {
+    const url = req.url();
+    if (/src\/scripts\/demos\/.+\.js|_astro\/(hypr-keybind-overlay|magpie|gamehub|mc-jukebox)/.test(url)) {
+      requestedDemos.push(url);
+    }
+  });
+
+  await page.goto('/');
+  await page.waitForTimeout(600);
+  expect(requestedDemos).toEqual([]);
+
+  // Scrolling near WS2 loads demos
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1200);
+  expect(requestedDemos.length).toBeGreaterThan(0);
+});
+
+test('JS budget: initial JS and total lazy JS within limits', async () => {
+  const distDir = 'dist/_astro';
+  const files = fs.readdirSync(distDir).filter((f) => f.endsWith('.js'));
+  let totalBytes = 0;
+  for (const file of files) {
+    const stat = fs.statSync(`${distDir}/${file}`);
+    totalBytes += stat.size;
+  }
+  expect(totalBytes).toBeLessThanOrEqual(125000);
+});
+
+// ==========================================
 // SCREENSHOT SUITE (@shots)
 // ==========================================
 
@@ -1328,7 +1639,7 @@ async function scrollThroughPage(p) {
 }
 
 test('@shots generate evaluation screenshots', async ({ page }) => {
-  test.setTimeout(90000);
+  test.setTimeout(120000);
   fs.mkdirSync('/tmp/agemo-shots', { recursive: true });
 
   // 1. / at 1440x900 locked
@@ -1430,4 +1741,86 @@ test('@shots generate evaluation screenshots', async ({ page }) => {
   await ePage.waitForTimeout(500);
   await ePage.screenshot({ path: '/tmp/agemo-shots/404-390.png' });
   await eCtx.close();
+
+  // 11. WS2 at 1440x900 with every demo live (scroll there, wait 1.5s)
+  await page.goto('/');
+  await page.locator('#ws-work').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1600);
+  await page.screenshot({ path: '/tmp/agemo-shots/ws2-1440-live.png' });
+
+  // 12. WS2 at 390 full height
+  const mWorkCtx = await page.context().browser().newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const mWorkPage = await mWorkCtx.newPage();
+  await unlock(mWorkPage);
+  await mWorkPage.goto('/#ws-work');
+  await mWorkPage.locator('#ws-work').scrollIntoViewIfNeeded();
+  await mWorkPage.waitForTimeout(1600);
+  await mWorkPage.screenshot({ path: '/tmp/agemo-shots/ws2-390-live.png' });
+  await mWorkCtx.close();
+
+  // 13. keyboard with W held; hyprland toggle on
+  const kbSlot = page.locator('.demo-slot[data-demo="hypr-keybind-overlay"]');
+  await kbSlot.scrollIntoViewIfNeeded();
+  const hyprChip = kbSlot.locator('.live-kb__chip', { hasText: 'hyprland binds' });
+  await hyprChip.click();
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: '/tmp/agemo-shots/demo-keyboard-hypr.png' });
+  await page.keyboard.up('KeyW');
+
+  // 14. magpie after two real copies and a search
+  const magSlot = page.locator('.demo-slot[data-demo="magpie"]');
+  await magSlot.scrollIntoViewIfNeeded();
+  await page.evaluate(() => {
+    document.dispatchEvent(new CustomEvent('agemo:copied', { detail: 'git checkout -b rice' }));
+    document.dispatchEvent(new CustomEvent('agemo:copied', { detail: 'pnpm run dev' }));
+  });
+  const searchInput = magSlot.locator('.live-magpie__search');
+  await searchInput.fill('git');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: '/tmp/agemo-shots/demo-magpie-search.png' });
+
+  // 15. gamehub mid-game and paused state
+  const ghSlot = page.locator('.demo-slot[data-demo="gamehub"]');
+  await ghSlot.scrollIntoViewIfNeeded();
+  const ghPlay = ghSlot.locator('.live-gamehub__play-btn');
+  if (await ghPlay.isVisible()) {
+    await ghPlay.click();
+    await page.waitForTimeout(400);
+  }
+  const ghTv = ghSlot.locator('.live-gamehub__tv');
+  await ghTv.focus();
+  await page.keyboard.press('Escape'); // pause
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: '/tmp/agemo-shots/demo-gamehub-paused.png' });
+
+  // 16. jukebox playing (bar widget visible, disc mid-spin, visualiser bars)
+  const jbSlot = page.locator('.demo-slot[data-demo="mc-jukebox"]');
+  await jbSlot.scrollIntoViewIfNeeded();
+  const jbPlay = jbSlot.locator('.live-jukebox__play-btn');
+  await jbPlay.click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: '/tmp/agemo-shots/demo-jukebox-playing.png' });
+
+  // 17. toast visible and agemo mirror
+  await page.keyboard.type('agemo', { delay: 40 });
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: '/tmp/agemo-shots/toast-and-mirror.png' });
+  await page.waitForTimeout(1400);
+
+  // 18. terminal after cowsay moo and fortune
+  await page.locator('#ws-home').scrollIntoViewIfNeeded();
+  const term = page.locator('.term__input');
+  await term.click();
+  await term.fill('cowsay moo');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(100);
+  await term.fill('fortune');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: '/tmp/agemo-shots/terminal-easter-eggs.png' });
 });

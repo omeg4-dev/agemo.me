@@ -68,10 +68,16 @@ const styleAttrs = [
   }
 
   .win:hover,
-  .win:focus-within {
+  .win:focus-within,
+  .win.is-floating-dragging {
     --win-border-1: var(--accent);
     --win-border-2: var(--accent-2);
     box-shadow: 0 20px 60px -20px rgb(0 0 0 / 0.6);
+  }
+
+  .win.is-floating-dragging {
+    box-shadow: 0 25px 70px -10px rgb(0 0 0 / 0.85) !important;
+    z-index: 10;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -105,6 +111,19 @@ const styleAttrs = [
     border-bottom: 1px solid var(--base02);
     user-select: none;
     background: rgb(22 22 22 / 0.6);
+  }
+
+  .win__bar--draggable {
+    cursor: grab;
+  }
+
+  .win__bar--draggable.is-grabbing {
+    cursor: grabbing;
+  }
+
+  .win__bar:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   .win__title {

@@ -156,6 +156,20 @@ export function initTerminal(root) {
         window.dispatchEvent(new CustomEvent('agemo:keys'));
       } else if (eff.type === 'launcher') {
         window.dispatchEvent(new CustomEvent('agemo:launcher'));
+      } else if (eff.type === 'jukebox-play') {
+        window.dispatchEvent(new CustomEvent('agemo:jukebox-play', { detail: eff.track }));
+      } else if (eff.type === 'jukebox-stop') {
+        window.dispatchEvent(new CustomEvent('agemo:jukebox-stop'));
+      } else if (eff.type === 'sl') {
+        const lines = Array.from(logEl.querySelectorAll('.term__line')).slice(-3);
+        if (lines.length === 3) {
+          const slideBox = document.createElement('div');
+          slideBox.style.overflow = 'hidden';
+          slideBox.style.whiteSpace = 'pre';
+          slideBox.style.animation = 'train-slide 2.8s linear forwards';
+          lines.forEach((l) => slideBox.appendChild(l));
+          logEl.appendChild(slideBox);
+        }
       }
     }
 

@@ -6,6 +6,39 @@ import linksData from '../data/links.json' with { type: 'json' };
 
 const VALID_ACCENTS = ['blue', 'cyan', 'green', 'pink', 'purple', 'rose'];
 
+export const FORTUNES = [
+  'There is no place like ~ except a freshly riced workspace.',
+  'A blurred background conceals a multitude of open terminals.',
+  'May your window gaps be even and your frame rates unthrottled.',
+  'Any config file sufficiently customized is indistinguishable from art.',
+  'Gaps: outer 8, inner 4, productivity: undefined.',
+  'In Hyprland, every keystroke is an intentional journey.',
+  'A clean desktop is the sign of a hidden scratchpad.',
+  "Compile flags won't fix your code, but they'll make it fail faster.",
+];
+
+export function cowsay(text) {
+  const msg = text || 'moo';
+  const len = msg.length;
+  const top = ' ' + '_'.repeat(len + 2);
+  const mid = `< ${msg} >`;
+  const bot = ' ' + '-'.repeat(len + 2);
+  const cow = [
+    '        \\   ^__^',
+    '         \\  (oo)\\_______',
+    '            (__)\\       )\\/\\',
+    '                ||----w |',
+    '                ||     ||',
+  ];
+  return [top, mid, bot, ...cow];
+}
+
+export const TRAIN = [
+  '     ====        ________                ___________',
+  ' _D _|  |_______/        \\__I_I_____===__|_________|',
+  '  |(_)---  |   |==== |-- |   |  |___/     |--|--|--|',
+];
+
 export function run(rawLine, ctx = {}) {
   const line = (rawLine || '').trim();
   const pinned = ctx.pinned || reposData.pinned || [];
@@ -89,8 +122,13 @@ export function run(rawLine, ctx = {}) {
         [{ text: '  open <project>    ', cls: 'cyan' }, { text: 'open project repository in new tab', cls: 'dim' }],
         [{ text: '  cat <file>        ', cls: 'cyan' }, { text: 'read readme or project description', cls: 'dim' }],
         [{ text: '  links             ', cls: 'cyan' }, { text: 'list curated links', cls: 'dim' }],
+        [{ text: '  play [track]      ', cls: 'cyan' }, { text: 'play chiptune loop (omega, agemo, cachy)', cls: 'dim' }],
+        [{ text: '  stop              ', cls: 'cyan' }, { text: 'stop chiptune music playback', cls: 'dim' }],
         [{ text: '  theme [name]      ', cls: 'cyan' }, { text: 'view or set theme accent (blue, cyan, green, pink, purple, rose)', cls: 'dim' }],
         [{ text: '  palindrome [text] ', cls: 'cyan' }, { text: 'mirror text around arrow', cls: 'dim' }],
+        [{ text: '  cowsay <text>     ', cls: 'cyan' }, { text: 'print an ascii talking cow', cls: 'dim' }],
+        [{ text: '  fortune           ', cls: 'cyan' }, { text: 'print a linux / hyprland fortune', cls: 'dim' }],
+        [{ text: '  sl                ', cls: 'cyan' }, { text: 'run steam locomotive across terminal', cls: 'dim' }],
         [{ text: '  echo <text>       ', cls: 'cyan' }, { text: 'print text to console', cls: 'dim' }],
         [{ text: '  clear             ', cls: 'cyan' }, { text: 'clear terminal screen', cls: 'dim' }],
         [{ text: '  history           ', cls: 'cyan' }, { text: 'show command history', cls: 'dim' }],
@@ -318,6 +356,49 @@ export function run(rawLine, ctx = {}) {
         { text: ' ⟷ ', cls: 'pink arrow', isArrow: true },
         { text: rev, cls: 'purple' },
       ]],
+      effects: [],
+    };
+  }
+
+  // play
+  if (cmd === 'play') {
+    const track = arg1 || 'omega';
+    return {
+      lines: [[{ text: `now playing disc · ${track}`, cls: 'green' }]],
+      effects: [{ type: 'jukebox-play', track }],
+    };
+  }
+
+  // stop
+  if (cmd === 'stop') {
+    return {
+      lines: [[{ text: 'jukebox stopped.', cls: 'dim' }]],
+      effects: [{ type: 'jukebox-stop' }],
+    };
+  }
+
+  // cowsay
+  if (cmd === 'cowsay') {
+    const speech = cowsay(rest);
+    return {
+      lines: speech.map((lineStr) => [{ text: lineStr, cls: 'cyan' }]),
+      effects: [],
+    };
+  }
+
+  // sl
+  if (cmd === 'sl') {
+    return {
+      lines: TRAIN.map((lineStr) => [{ text: lineStr, cls: 'purple' }]),
+      effects: [{ type: 'sl' }],
+    };
+  }
+
+  // fortune
+  if (cmd === 'fortune') {
+    const rand = Math.floor(Math.random() * FORTUNES.length);
+    return {
+      lines: [[{ text: FORTUNES[rand], cls: 'text' }]],
       effects: [],
     };
   }
