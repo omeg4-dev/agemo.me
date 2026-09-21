@@ -3,7 +3,8 @@ import fs from 'node:fs';
 
 const repos = JSON.parse(fs.readFileSync(new URL('../src/data/repos.json', import.meta.url))).pinned;
 const links = JSON.parse(fs.readFileSync(new URL('../src/data/links.json', import.meta.url))).links;
-const PAGES = ['/', '/links/', '/404.html'];
+const site = (await import('../src/config/site.mjs')).default;
+const PAGES = ['/', '/links/', '/404.html', '/jerkcraft/', '/games/', '/bot/', '/abi/'];
 
 function watchErrors(page) {
   const errors = [];
@@ -134,27 +135,36 @@ test.describe('reduced motion', () => {
   });
 });
 
-test('pinned shows every pinned repo, linked to GitHub', async ({ page }) => {
+test('work lists the pins, then the extras, each linked to its page', async ({ page }) => {
   await page.goto('/');
-  const rows = page.locator('#pinned .repo__link');
-  await expect(rows).toHaveCount(repos.length);
-  for (const [i, r] of repos.entries()) {
-    await expect(rows.nth(i)).toHaveAttribute('href', r.url);
+  const rows = page.locator('#work .repo__link');
+  const expected = [
+    ...repos.map((r) => ({ name: r.name, href: site.pages[r.name] ?? r.url, desc: r.description })),
+    ...site.extras.map((x) => ({ name: x.name, href: x.href, desc: x.description })),
+  ];
+  await expect(rows).toHaveCount(expected.length);
+  for (const [i, r] of expected.entries()) {
+    await expect(rows.nth(i)).toHaveAttribute('href', r.href);
     await expect(rows.nth(i).locator('.repo__name')).toHaveText(r.name);
-    if (r.description) await expect(rows.nth(i).locator('.repo__desc')).toHaveText(r.description);
+    if (r.desc) await expect(rows.nth(i).locator('.repo__desc')).toHaveText(r.desc);
+  }
+  // Every internal row points at a page that exists.
+  for (const r of expected.filter((x) => x.href.startsWith('/'))) {
+    const res = await page.request.get(r.href.split('#')[0]);
+    expect(res.status(), r.href).toBe(200);
   }
 });
 
 test('hovering a repo unfolds the reflection of its name', async ({ page }, info) => {
   test.skip(info.project.name === 'mobile', 'no hover on touch');
   await page.goto('/');
-  const name = page.locator('#pinned .repo__name').first();
+  const name = page.locator('#work .repo__name').first();
   const ghost = () => name.evaluate((n) => {
     const s = getComputedStyle(n, '::after');
     return { o: Number(s.opacity), m11: new DOMMatrix(s.transform).m11, text: s.content };
   });
   expect((await ghost()).o).toBe(0);
-  await page.locator('#pinned .repo__link').first().hover();
+  await page.locator('#work .repo__link').first().hover();
   await expect.poll(async () => (await ghost()).m11, { timeout: 2000 }).toBeLessThan(-0.99);
   const g = await ghost();
   expect(g.o).toBeGreaterThan(0.3);
@@ -216,7 +226,7 @@ test('screenshots @shots', async ({ page }, info) => {
     await scrollHeroTo(page, f);
     await page.screenshot({ path: `test-results/shots/${info.project.name}-hero-${f}.png` });
   }
-  for (const id of ['pinned', 'elsewhere']) {
+  for (const id of ['work', 'elsewhere']) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await page.waitForTimeout(200);
     await page.screenshot({ path: `test-results/shots/${info.project.name}-${id}.png` });

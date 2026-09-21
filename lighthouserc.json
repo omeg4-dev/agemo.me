@@ -5,7 +5,8 @@
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop"
-      }
+      },
+      "maxAutodiscoverUrls": 0
     },
     "assert": {
       "assertMatrix": [
