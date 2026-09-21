@@ -1,16 +1,10 @@
 ---
-// links.astro: Links vault page with yazi file manager styling
 import Base from '../layouts/Base.astro';
-import Wallpaper from '../components/Wallpaper.astro';
-import Bar from '../components/Bar.astro';
-import KeysOverlay from '../components/KeysOverlay.astro';
-import Launcher from '../components/Launcher.astro';
-import Window from '../components/Window.astro';
-import Footer from '../components/Footer.astro';
+import Reflected from '../components/Reflected.astro';
 import data from '../data/links.json' with { type: 'json' };
 
-// Group by tag, preserving file order
-const groups: { tag: string; items: any[] }[] = [];
+// Rows are grouped by tag, in the order the tags first appear in the file.
+const groups: { tag: string; items: typeof data.links }[] = [];
 for (const link of data.links) {
   const tag = link.tag || 'misc';
   let group = groups.find((g) => g.tag === tag);
@@ -19,246 +13,31 @@ for (const link of data.links) {
 }
 
 const host = (url: string) => {
-  try {
-    return new URL(url).host.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
+  try { return new URL(url).host.replace(/^www\./, ''); } catch { return url; }
 };
 ---
-<Base title="links · Omega ⟷ agemO" description="Things worth keeping a pointer to.">
-  <Wallpaper />
-  <Bar here="links" />
-  <KeysOverlay />
-  <Launcher />
-
-  <main class="links-page">
-    <header class="links-page__head">
-      <h1 class="vault__title section-heading">links</h1>
-      <p class="section-sub">pointers vault · file manager view</p>
-    </header>
-
-    <Window title="~/links" app="yazi" class="links-page__win" i={0}>
-      <div class="vault-container">
-        {groups.map((group) => (
-          <section class="group" aria-labelledby={`group-${group.tag}`} data-link-group>
-            <div class="group__head">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="group__folder-icon" aria-hidden="true">
-                <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-              </svg>
-              <h2 class="group__tag" id={`group-${group.tag}`}>{group.tag}</h2>
-            </div>
-
-            <ul class="group__rows">
-              {group.items.map((link) => (
-                <li class="row">
-                  <a class="row__hit" href={link.url} target="_blank" rel="noopener noreferrer">
-                    <span class="row__stack">
-                      <span class="row__title">{link.title}</span>
-                      <span class="row__host">{host(link.url)}</span>
-                    </span>
-
-                    {link.note && <span class="row__note">{link.note}</span>}
-                    <span class="row__go" aria-hidden="true">→</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
-    </Window>
-
-    <Footer />
-  </main>
+<Base title="Links · Omega ⟷ agemO" description="Pointers worth keeping." here="links">
+  <div class="page">
+    <Reflected text="Links" />
+    {groups.map((g) => (
+      <section class="group" aria-labelledby={`tag-${g.tag}`}>
+        <h2 class="mono" id={`tag-${g.tag}`}>{g.tag}</h2>
+        <ul class="repos">
+          {g.items.map((l) => (
+            <li class="repo">
+              <a class="repo__link" href={l.url} rel="noopener">
+                <span class="repo__name" data-name={l.title} data-long={l.title.length > 12 ? '' : undefined}>{l.title}</span>
+                <p class="repo__desc">{l.note}</p>
+                <span class="repo__meta mono">
+                  <span class="repo__lang">{host(l.url)}</span>
+                  <span class="repo__arrow" aria-hidden="true">↗</span>
+                </span>
+                <span class="repo__sub mono">{host(l.url)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
 </Base>
-
-<style>
-  .links-page {
-    width: 100%;
-    min-height: 100vh;
-    padding: calc(44px + 2 * var(--gap-outer)) var(--gap-outer) var(--gap-outer);
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  @media (max-width: 640px) {
-    .links-page {
-      padding-top: calc(48px + 1.5 * var(--gap-outer));
-    }
-  }
-
-  .links-page__head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-left: 0;
-  }
-
-  .section-heading {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-stretch: 62%;
-    font-size: clamp(3rem, 8vw, 7rem);
-    line-height: 0.9;
-    text-transform: uppercase;
-    letter-spacing: -0.01em;
-    color: var(--blue);
-    background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 50%, var(--pink) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0;
-  }
-
-  @supports not (background-clip: text) {
-    .section-heading {
-      background: none;
-      -webkit-text-fill-color: initial;
-      color: var(--blue);
-    }
-  }
-
-  .section-sub {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    letter-spacing: 0.05em;
-    margin: 0;
-  }
-
-  .vault-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .group__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--cyan);
-  }
-
-  .group__folder-icon {
-    color: var(--cyan);
-  }
-
-  .group__tag {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--cyan);
-    margin: 0;
-  }
-
-  .group__rows {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    border-left: 1px dashed var(--base02);
-    padding-left: 12px;
-  }
-
-  .row {
-    position: relative;
-    border-bottom: 1px solid var(--base02);
-    transition: background-color var(--dur-1) var(--ease);
-  }
-
-  .row:last-child {
-    border-bottom: none;
-  }
-
-  .row:hover,
-  .row:focus-within {
-    background: rgb(255 255 255 / 0.04);
-  }
-
-  .row__hit {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: baseline;
-    column-gap: 1.5rem;
-    row-gap: 0.4rem;
-    padding: 12px 14px;
-    color: inherit;
-    text-decoration: none;
-    min-height: 44px;
-  }
-
-  .row__stack {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.75rem 1.25rem;
-    min-height: 1.8rem;
-  }
-
-  .row__title {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-stretch: 75%;
-    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
-    line-height: 1.2;
-    color: var(--text);
-  }
-
-  .row__host {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    color: var(--text-dim);
-    white-space: nowrap;
-  }
-
-  .row__note {
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: var(--base04);
-    grid-column: 1;
-    grid-row: 2;
-    max-width: 60ch;
-  }
-
-  .row__go {
-    font-family: var(--font-mono);
-    color: var(--accent);
-    opacity: 0;
-    transform: translateX(-6px);
-    transition: opacity var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
-  }
-
-  .row:hover .row__go,
-  .row:focus-within .row__go {
-    opacity: 1;
-    transform: none;
-  }
-
-  @media (max-width: 640px) {
-    .row__hit {
-      grid-template-columns: 1fr;
-    }
-    .row__go {
-      display: none;
-    }
-  }
-</style>
-
-<script>
-  import { initScroll } from '../scripts/scroll.js';
-  initScroll();
-</script>

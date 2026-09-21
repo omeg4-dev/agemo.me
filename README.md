@@ -1,7 +1,9 @@
 # agemo.me
 
-Personal site. Ω is the last letter; AGEMO is OMEGA reversed. The whole page
-sits on a waterline — real above, reflected below.
+Personal site. Ω is the last letter; AGEMO is OMEGA reversed. The home page
+opens on the word split by a mirror's edge — dark backing on one side, the
+silvered side on the other — and scrolling walks each letter through its
+partner and turns it over, so OMEGA ends as its own reflection.
 
 Astro 5, static, no framework. Project data is fetched from the GitHub API at
 build time into `src/data/repos.json`, so the site builds offline and makes no
@@ -42,5 +44,3 @@ pinned.
 The config never reuses an existing server: a stale one serving an older
 `dist/` once made a whole mutation-testing round report false greens.
 
-Design: `docs/superpowers/specs/2026-09-05-agemo-me-phase1-design.md`
-Plan: `docs/superpowers/plans/2026-09-05-agemo-me-phase1.md`

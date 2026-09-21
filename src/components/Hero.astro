@@ -1,0 +1,40 @@
+---
+// The signature: OMEGA, and a mirror standing on its edge through the E.
+// Two copies of the same scene, the silvered one clipped to the right of the
+// axis. Scrolling walks each letter through its partner and turns it over,
+// so the word ends as its own reflection.
+const letters = ['O', 'M', 'E', 'G', 'A'];
+const layers = ['backing', 'silver'];
+---
+<section class="hero" data-hero aria-labelledby="hero-word">
+  <div class="hero__stick" data-stick>
+    {layers.map((layer, n) => (
+      <div
+        class:list={['hero__layer', `hero__layer--${layer}`]}
+        aria-hidden={n > 0 ? 'true' : undefined}
+        inert={n > 0 ? true : undefined}
+      >
+        <p class="hero__top mono" aria-hidden="true"><span>Ω, the last letter</span><span>read from the other side</span></p>
+        {n === 0 ? (
+          <h1 class="word" id="hero-word" aria-label="Omega">
+            {letters.map((l) => <span class="word__l" aria-hidden="true">{l}</span>)}
+          </h1>
+        ) : (
+          <div class="word">
+            {letters.map((l) => <span class="word__l">{l}</span>)}
+          </div>
+        )}
+        <div class="hero__foot">
+          <p class="hero__line"><em>Omega</em> writes small, stubborn software. Mostly Python, always open source.</p>
+          <p class="hero__read mono" aria-hidden="true">reads <b data-read>omega</b> <span data-hint>· scroll to turn it over</span></p>
+        </div>
+      </div>
+    ))}
+    <div class="hero__axis" aria-hidden="true"></div>
+  </div>
+</section>
+
+<script>
+  import { initMirror } from '../scripts/mirror.js';
+  initMirror();
+</script>

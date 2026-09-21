@@ -1,0 +1,34 @@
+---
+import site from '../config/site.mjs';
+---
+<section class="section elsewhere" id="elsewhere" aria-labelledby="elsewhere-title">
+  <div class="head">
+    <h2 id="elsewhere-title">Elsewhere</h2>
+    <p class="mono">no email, no forms — these work</p>
+  </div>
+  <ul class="ways">
+    <li>
+      <a class="way" href={site.links.discord} rel="me noopener" data-presence data-discord-id={site.discordId}>
+        <span class="way__label mono"><span class="dot" data-presence-state></span><span data-presence-text>message me</span></span>
+        <span class="way__name">Discord<span aria-hidden="true">↗</span></span>
+      </a>
+    </li>
+    <li>
+      <a class="way" href={site.links.github} rel="me noopener">
+        <span class="way__label mono">{site.owner}</span>
+        <span class="way__name">GitHub<span aria-hidden="true">↗</span></span>
+      </a>
+    </li>
+    <li>
+      <a class="way" href="/links/">
+        <span class="way__label mono">pointers worth keeping</span>
+        <span class="way__name">Links<span aria-hidden="true">→</span></span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+<script>
+  import { initPresence } from '../scripts/presence.js';
+  initPresence();
+</script>

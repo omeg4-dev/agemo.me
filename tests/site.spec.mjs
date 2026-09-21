@@ -1,1856 +1,228 @@
 import { test, expect } from '@playwright/test';
-import site from '../src/config/site.mjs';
-import links from '../src/data/links.json' with { type: 'json' };
 import fs from 'node:fs';
 
-async function unlock(page) {
-  await page.addInitScript(() => {
-    try {
-      sessionStorage.setItem('agemo:unlocked', '1');
-    } catch {}
-  });
-}
+const repos = JSON.parse(fs.readFileSync(new URL('../src/data/repos.json', import.meta.url))).pinned;
+const links = JSON.parse(fs.readFileSync(new URL('../src/data/links.json', import.meta.url))).links;
+const PAGES = ['/', '/links/', '/404.html'];
 
-test('page loads with the correct title', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await expect(page).toHaveTitle('Omega ⟷ agemO');
-});
-
-test('fonts are self-hosted, never fetched from a third-party CDN', async ({ page }) => {
-  await unlock(page);
-  const external = [];
-  page.on('request', (req) => {
-    const url = req.url();
-    if (/fonts\.(googleapis|gstatic)\.com|use\.typekit|cdn\.jsdelivr|unpkg\.com/.test(url)) {
-      external.push(url);
-    }
-  });
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  expect(external).toEqual([]);
-});
-
-test('the display face is actually applied to a real text element', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.evaluate(() => document.fonts.ready);
-  const family = await page.locator('h1 .mirror__word').evaluate(
-    (el) => getComputedStyle(el).fontFamily,
-  );
-  expect(family.replace(/["']/g, '').trim()).toMatch(/^Anybody/i);
-  const loaded = await page.evaluate(() => document.fonts.check('900 1em Anybody'));
-  expect(loaded).toBe(true);
-});
-
-test('page logs no console errors', async ({ page }) => {
-  await unlock(page);
-  const errors = [];
-  page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
-  page.on('pageerror', (err) => errors.push(err.message));
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  expect(errors).toEqual([]);
-});
-
-test('hero renders a real subject and a reflection without JavaScript', async ({ browser }) => {
-  const ctx = await browser.newContext({ javaScriptEnabled: false });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  const image = page.locator('.mirror__image');
-  await expect(image).toBeAttached();
-  await expect(image).toHaveAttribute('aria-hidden', 'true');
-
-  const transform = await image.evaluate((el) => getComputedStyle(el).transform);
-  const m = transform.match(/^matrix\(([^,]+)/);
-  expect(m).toBeTruthy();
-  const a = parseFloat(m[1]);
-  expect(a).toBeLessThan(0);
-
-  const h1Name = await page.locator('h1').evaluate((el) => el.getAttribute('aria-label') || el.innerText);
-  expect(h1Name.trim()).toBe('Omega');
-  await ctx.close();
-});
-
-test('the hero reflection is actually mirrored and hidden from screen readers', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const reflection = page.locator('.mirror__image');
-  await expect(reflection).toHaveAttribute('aria-hidden', 'true');
-  const transform = await reflection.evaluate((el) => getComputedStyle(el).transform);
-  const m = transform.match(/^matrix\(([^,]+)/);
-  expect(m).toBeTruthy();
-  expect(parseFloat(m[1])).toBeLessThan(0);
-});
-
-test('the hero exposes an accessible name for the site', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const h1 = page.locator('h1');
-  const accessibleName = await h1.evaluate((el) => el.getAttribute('aria-label') || el.innerText);
-  expect(accessibleName).toBe('Omega');
-});
-
-test('the mirror line rests at the word\'s full width', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForTimeout(2000);
-  const diff = await page.evaluate(() => {
-    const mirror = document.querySelector('.mirror');
-    const word = mirror.querySelector('.mirror__word');
-    const wordWidth = word.getBoundingClientRect().width;
-    const xVal = parseFloat(getComputedStyle(mirror).getPropertyValue('--x'));
-    return Math.abs(xVal - wordWidth);
-  });
-  expect(diff).toBeLessThanOrEqual(2);
-});
-
-test('pointer over the hero moves the mirror line', async ({ page, isMobile, browserName }) => {
-  test.skip(isMobile, 'Desktop pointer test only');
-  test.skip(browserName === 'firefox', 'Headless Firefox synthetic pointer hover quirks prevent reliable tracking under load');
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForTimeout(2000);
-
-  const wordBox = await page.locator('.mirror__word').boundingBox();
-  expect(wordBox).toBeTruthy();
-
-  const targetX = wordBox.x + wordBox.width * 0.4;
-  await page.mouse.move(targetX, wordBox.y + wordBox.height * 0.5);
-  await page.waitForTimeout(600);
-
-  const xAt40 = await page.evaluate(() => {
-    const mirror = document.querySelector('.mirror');
-    return parseFloat(getComputedStyle(mirror).getPropertyValue('--x'));
-  });
-  const expected40 = wordBox.width * 0.4;
-  expect(Math.abs(xAt40 - expected40)).toBeLessThanOrEqual(expected40 * 0.15);
-
-  await page.mouse.move(0, 0);
-  await page.waitForTimeout(1200);
-
-  const xAtRest = await page.evaluate(() => {
-    const mirror = document.querySelector('.mirror');
-    return parseFloat(getComputedStyle(mirror).getPropertyValue('--x'));
-  });
-  expect(Math.abs(xAtRest - wordBox.width)).toBeLessThanOrEqual(2);
-});
-
-test('reduced motion keeps the mirror line still', async ({ browser }) => {
-  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await page.waitForTimeout(500);
-
-  const initialX = await page.evaluate(() => {
-    const mirror = document.querySelector('.mirror');
-    return parseFloat(getComputedStyle(mirror).getPropertyValue('--x'));
-  });
-
-  const wordBox = await page.locator('.mirror__word').boundingBox();
-  if (wordBox) {
-    await page.mouse.move(wordBox.x + wordBox.width * 0.4, wordBox.y + wordBox.height * 0.5);
-    await page.waitForTimeout(600);
-  }
-
-  const afterX = await page.evaluate(() => {
-    const mirror = document.querySelector('.mirror');
-    return parseFloat(getComputedStyle(mirror).getPropertyValue('--x'));
-  });
-
-  expect(afterX).toBe(initialX);
-  await ctx.close();
-});
-
-test('no canvas before interaction, one labelled canvas after play on /, none on /links and 404', async ({ page }) => {
-  await unlock(page);
-  for (const path of ['/', '/links', '/does-not-exist']) {
-    await page.goto(path);
-    const canvasCount = await page.locator('canvas').count();
-    expect(canvasCount, `canvas count on ${path} before interaction`).toBe(0);
-  }
-
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-  const playBtn = page.locator('.live-gamehub__play-btn');
-  await playBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await playBtn.click();
-
-  const canvas = page.locator('canvas');
-  expect(await canvas.count()).toBe(1);
-  const label = await canvas.getAttribute('aria-label');
-  expect(label).toBe('Paddle duel game');
-});
-
-test('nothing animates infinitely', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForTimeout(3000);
-  const infiniteAnimations = await page.evaluate(() => {
-    return document.getAnimations()
-      .filter((anim) => anim.playState === 'running')
-      .filter((anim) => {
-        const timing = anim.effect ? anim.effect.getTiming() : null;
-        return timing && timing.iterations === Infinity;
-      })
-      .map((anim) => {
-        const target = anim.effect && anim.effect.target;
-        return target ? `${target.tagName}.${target.className}` : 'unknown';
-      });
-  });
-  expect(infiniteAnimations).toEqual([]);
-});
-
-test('dark theme palette emulates correctly', async ({ browser }) => {
-  const ctx = await browser.newContext({ colorScheme: 'dark' });
-  const page = await ctx.newPage();
-  await unlock(page);
-  await page.goto('/');
-  const bg = await page.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(bg).toBe('rgb(22, 22, 22)');
-  await ctx.close();
-});
-
-test('presence chips are never empty, even before Lanyard answers', async ({ page }) => {
-  await unlock(page);
-  await page.route('**/api.lanyard.rest/**', () => {});
-  await page.goto('/');
-  await expect(page.locator('[data-presence-state]').first()).not.toBeEmpty();
-  await expect(page.locator('[data-presence-activity]').first()).not.toBeEmpty();
-});
-
-test('presence degrades to offline when Lanyard fails', async ({ page }) => {
-  await unlock(page);
-  await page.route('**/api.lanyard.rest/**', (route) => route.abort());
+function watchErrors(page) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
-  await expect(page.locator('[data-presence-state]').first()).toHaveText(/offline/i, { timeout: 5000 });
-  expect(errors).toEqual([]);
-});
-
-test('presence renders the reported state when Lanyard succeeds', async ({ page }) => {
-  await unlock(page);
-  await page.route('**/api.lanyard.rest/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          discord_status: 'online',
-          activities: [{ type: 0, name: 'Neovim', state: 'editing mirror.js' }],
-        },
-      }),
-    }),
-  );
-  await page.goto('/');
-  await expect(page.locator('[data-presence-state]').first()).toHaveText(/online/i);
-  await expect(page.locator('[data-presence-activity]').first()).toHaveText(/Neovim/);
-});
-
-test('no email address appears anywhere on the page', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const html = await page.content();
-  expect(html).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
-  expect(html.toLowerCase()).not.toContain('tuta');
-});
-
-test('tagline is visible without JavaScript on a desktop viewport', async ({ browser }) => {
-  const ctx = await browser.newContext({
-    javaScriptEnabled: false,
-    viewport: { width: 1440, height: 900 },
+  page.on('console', (m) => {
+    // Lanyard is third-party and best-effort; its network failures are not ours.
+    if (m.type() === 'error' && !/lanyard|Failed to load resource/i.test(m.text())) errors.push(m.text());
   });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  const line = page.locator('.hero__tagline');
-  await expect(line).toBeVisible();
-  const box = await line.boundingBox();
-  expect(box.width).toBeGreaterThan(300);
-  await expect(line).toHaveText(/I build things for Linux desktops/);
-  const clipsContent = await line.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
-  expect(clipsContent).toBe(false);
-  await ctx.close();
-});
-
-function breakScrollScript(page) {
-  const state = { broken: false };
-
-  page.route('**/*.js', async (route) => {
-    const res = await route.fetch();
-    const body = await res.text();
-    if (!body.includes('data-revealed')) return route.fulfill({ response: res, body });
-    state.broken = true;
-    await route.fulfill({
-      response: res,
-      body: 'throw new Error("simulated scroll.js failure");',
-    });
-  });
-
-  page.route('**/', async (route) => {
-    const res = await route.fetch();
-    const body = await res.text();
-    const broken = body.replace(
-      /<script type="module">((?:(?!<\/script>)[\s\S])*data-revealed(?:(?!<\/script>)[\s\S])*)<\/script>/,
-      '<script type="module">throw new Error("simulated scroll.js failure");</script>',
-    );
-    if (broken !== body) state.broken = true;
-    await route.fulfill({ response: res, body: broken });
-  });
-
-  return state;
+  return errors;
 }
 
-test('work stays visible when scroll.js fails to load', async ({ page }) => {
-  await unlock(page);
-  const state = breakScrollScript(page);
-  await page.goto('/');
-  expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
-  const line = page.locator('#ws-work [data-project-name]').first();
-  await expect(line).toBeAttached();
-  const info = await line.evaluate((el) => ({
-    jsClass: document.documentElement.classList.contains('js'),
-  }));
-  expect(info.jsClass).toBe(false);
-  await expect(line).toHaveText(new RegExp(site.pinned[0]));
-});
-
-test('[data-reveal] sections stay visible when scroll.js fails to load', async ({ page }) => {
-  await unlock(page);
-  const state = breakScrollScript(page);
-  await page.goto('/');
-  expect(state.broken, 'scroll.js was never actually intercepted').toBe(true);
-  const workWin = page.locator('#ws-work .work__win').first();
-  await expect(workWin).toBeVisible();
-  const opacity = await workWin.evaluate((el) => getComputedStyle(el).opacity);
-  expect(opacity).toBe('1');
-});
-
-test('work section receives data-revealed once scrolled into view', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const workWin = page.locator('#ws-work .work__win').first();
-  await expect(workWin).not.toHaveAttribute('data-revealed', '');
-  await workWin.scrollIntoViewIfNeeded();
-  await expect(workWin).toHaveAttribute('data-revealed', '', { timeout: 3000 });
-});
-
-test('a short data-reveal section at the true end of the document still reveals', async ({ page }) => {
-  await unlock(page);
-  await page.route('**/', async (route) => {
-    const res = await route.fetch();
-    const body = await res.text();
-    const fixture = '<section data-reveal id="reveal-tail-fixture" style="height:80px">tail fixture</section>';
-    await route.fulfill({ response: res, body: body.replace('</body>', `${fixture}</body>`) });
-  });
-  await page.goto('/');
-  const fixture = page.locator('#reveal-tail-fixture');
-  await expect(fixture).not.toHaveAttribute('data-revealed', '');
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect(fixture).toHaveAttribute('data-revealed', '', { timeout: 3000 });
-});
-
-test('work section reveals immediately under reduced motion', async ({ browser }) => {
-  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await expect(page.locator('#ws-work .work__win').first()).toHaveAttribute('data-revealed', '', { timeout: 3000 });
-  await ctx.close();
-});
-
-test('work section reveals immediately when IntersectionObserver is unavailable', async ({ browser }) => {
-  const ctx = await browser.newContext();
-  const page = await ctx.newPage();
-  await unlock(page);
-  await page.addInitScript(() => { delete window.IntersectionObserver; });
-  await page.goto('/');
-  await expect(page.locator('#ws-work .work__win').first()).toHaveAttribute('data-revealed', '', { timeout: 3000 });
-  await ctx.close();
-});
-
-test('the work grid renders enough cards with real data', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const cards = page.locator('[data-project]');
-  expect(await cards.count()).toBe(site.pinned.length);
-
-  for (const name of await page.locator('[data-project-name]').allTextContents()) {
-    expect(name.trim()).not.toBe('');
-  }
-  for (const age of await page.locator('[data-project-age]').allTextContents()) {
-    expect(age.trim()).toMatch(/^\d{4}-\d{2}$/);
-  }
-});
-
-test('the work section shows the pinned repos and nothing else', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const names = (await page.locator('[data-project-name]').allTextContents()).map((n) => n.trim());
-  for (const f of site.pinned) expect(names).toContain(f);
-  expect(names.sort()).toEqual([...site.pinned].sort());
-});
-
-test('deny-listed repos never appear', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const names = (await page.locator('[data-project-name]').allTextContents()).map((n) => n.trim());
-  for (const d of site.deny) expect(names).not.toContain(d);
-});
-
-test('project links open safely in a new tab', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const link = page.locator('[data-project]').first();
-  await expect(link).toHaveAttribute('rel', /noopener/);
-  await expect(link).toHaveAttribute('target', '_blank');
-});
-
-test('no tofu-prone literal glyphs (Ω ★ ⟷) appear anywhere in rendered text', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const bodyText = await page.locator('body').innerText();
-  for (const glyph of ['★', '⟷', 'Ω']) {
-    expect(bodyText).not.toContain(glyph);
-  }
-});
-
-test('decorative elements do not intercept pointer events', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const line = page.locator('.mirror__line');
-  const pointerEvents = await line.evaluate((el) => getComputedStyle(el).pointerEvents);
-  expect(pointerEvents).toBe('none');
-});
-
-test('the page never scrolls horizontally at any width', async ({ page }) => {
-  await unlock(page);
-  for (const width of [320, 375, 768, 1440, 2560]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
-    await page.waitForTimeout(250);
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
-    expect(overflow, `horizontal overflow at ${width}px`).toBe(0);
-  }
-});
-
-test('every slab links to its repo safely in a new tab', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const linksCount = page.locator('[data-project]');
-  expect(await linksCount.count()).toBe(site.pinned.length);
-  for (const href of await linksCount.evaluateAll((els) => els.map((e) => e.href))) {
-    expect(href).toContain('github.com/');
-  }
-});
-
-test('the uses block lists the machine', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const uses = page.locator('[data-uses]');
-  await uses.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(300);
-  const text = (await uses.innerText()) || (await uses.textContent());
-  for (const section of site.machine) {
-    for (const { k, v } of section.rows) {
-      expect(text, `${section.name}.${k}`).toContain(v);
-    }
-  }
-});
-
-test('each machine section draws one continuous bracket', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const blocks = page.locator('[data-uses] .ff__block');
-  const count = await blocks.count();
-  expect(count).toBe(site.machine.length);
-
-  for (let i = 0; i < count; i += 1) {
-    const geom = await blocks.nth(i).evaluate((block) => {
-      const title = block.querySelector('.ff__title');
-      const titleBox = title.getBoundingClientRect();
-      const corner = getComputedStyle(title, '::before');
-      const cornerTop = titleBox.top + parseFloat(corner.top);
-      const rule = block.querySelector('.ff__rule').getBoundingClientRect();
-      const rows = block.querySelector('.ff__rows').getBoundingClientRect();
-      const close = block.querySelector('.ff__close').getBoundingClientRect();
-      return {
-        cornerTop,
-        cornerLeft: titleBox.left + parseFloat(corner.left),
-        ruleMid: rule.top + rule.height / 2,
-        rowsLeft: rows.left,
-        rowsTop: rows.top,
-        rowsBottom: rows.bottom,
-        closeLeft: close.left,
-        closeTop: close.top,
-        closeHeight: close.height,
-      };
-    });
-
-    expect(Math.abs(geom.cornerTop - geom.ruleMid), `section ${i} corner/rule y`)
-      .toBeLessThanOrEqual(1.5);
-    expect(Math.abs(geom.cornerLeft - geom.rowsLeft), `section ${i} corner/gutter x`)
-      .toBeLessThanOrEqual(1.5);
-    expect(Math.abs(geom.closeLeft - geom.rowsLeft), `section ${i} close/gutter x`)
-      .toBeLessThanOrEqual(1.5);
-    expect(Math.abs(geom.closeTop - geom.rowsBottom), `section ${i} gutter/close seam`)
-      .toBeLessThanOrEqual(1.5);
-    expect(geom.closeHeight, `section ${i} close has height`).toBeGreaterThan(2);
-  }
-});
-
-test('every machine icon resolves to a symbol in the sprite', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const missing = await page.locator('[data-uses]').evaluate((root) => {
-    const bad = [];
-    for (const use of root.querySelectorAll('use')) {
-      const id = (use.getAttribute('href') || use.getAttribute('xlink:href') || '').slice(1);
-      if (!id || !document.getElementById(id)) bad.push(id || '(empty)');
-    }
-    return bad;
-  });
-  expect(missing).toEqual([]);
-  expect(await page.locator('[data-uses] use').count()).toBeGreaterThan(10);
-
-  const painted = await page.locator('[data-uses] use').first().evaluate((el) => {
-    const cs = getComputedStyle(el);
-    return { fill: cs.fill, stroke: cs.stroke, strokeWidth: cs.strokeWidth };
-  });
-  expect(painted.fill).toBe('none');
-  expect(painted.stroke).not.toBe('none');
-  expect(parseFloat(painted.strokeWidth)).toBeGreaterThan(1);
-});
-
-test('every page carries the mirrored wordmark in its title', async ({ page }) => {
-  await unlock(page);
-  for (const [path, lead] of [['/', ''], ['/links', 'links · '], ['/does-not-exist', '404 · ']]) {
-    const res = await page.goto(path);
-    if (path === '/does-not-exist') expect(res.status()).toBe(404);
-    await expect(page).toHaveTitle(`${lead}Omega ⟷ agemO`);
-  }
-});
-
-test('the favicon is wired up and every file it points at is served', async ({ page, request }) => {
-  await unlock(page);
-  await page.goto('/');
-  const icons = await page.locator('link[rel="icon"], link[rel="apple-touch-icon"]')
-    .evaluateAll((els) => els.map((e) => ({ rel: e.getAttribute('rel'), href: e.getAttribute('href'), type: e.getAttribute('type') })));
-  expect(icons.some((i) => i.href === '/favicon.svg' && i.type === 'image/svg+xml')).toBe(true);
-  expect(icons.some((i) => i.href === '/favicon.ico')).toBe(true);
-  expect(icons.some((i) => i.rel === 'apple-touch-icon')).toBe(true);
-
-  for (const { href } of icons) {
-    const res = await request.get(href);
-    expect(res.status(), href).toBe(200);
-    expect(Number(res.headers()['content-length'] ?? 1), href).toBeGreaterThan(0);
-  }
-
-  const svg = await (await request.get('/favicon.svg')).text();
-  const parsed = await page.evaluate((src) => {
-    const doc = new DOMParser().parseFromString(src, 'image/svg+xml');
-    return {
-      error: !!doc.querySelector('parsererror'),
-      paths: doc.querySelectorAll('path').length,
-      uses: doc.querySelectorAll('use').length,
-    };
-  }, svg);
-  expect(parsed.error).toBe(false);
-  expect(parsed.paths).toBeGreaterThan(0);
-  expect(parsed.uses).toBe(2);
-});
-
-test('every link and button clears the 44px touch minimum', async ({ browser }) => {
-  const ctx = await browser.newContext({
-    viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true,
-  });
-  const page = await ctx.newPage();
-  await unlock(page);
-  for (const path of ['/', '/links']) {
-    await page.goto(path);
-    await page.waitForTimeout(400);
-    if (path === '/') {
-      for (const s of ['#ws-home', '#ws-work', '#ws-machine', '#ws-links', '#ws-reach']) {
-        await page.locator(s).scrollIntoViewIfNeeded();
-        await page.waitForTimeout(100);
-      }
-      for (const w of await page.locator('.win').all()) {
-        await w.scrollIntoViewIfNeeded();
-      }
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
-    }
-    const small = await page.evaluate(() => {
-      const out = [];
-      for (const el of document.querySelectorAll('a, button')) {
-        // WCAG 2.5.8 equivalent-control exception: every bound key action is also a site keybind/launcher action
-        if (el.matches('.live-kb__key')) continue;
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 && r.height === 0) continue;
-        if (r.height < 44 || r.width < 44) {
-          out.push(`${(el.textContent || '').trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`);
-        }
-      }
-      return out;
-    });
-    expect(small, path).toEqual([]);
-  }
-  await ctx.close();
-});
-
-test('link destinations are readable without a hover', async ({ browser }) => {
-  const ctx = await browser.newContext({
-    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
-  });
-  const page = await ctx.newPage();
-  await page.goto('/links');
-  await page.waitForTimeout(400);
-  const rows = await page.locator('.row').evaluateAll((els) => els.map((r) => {
-    const title = r.querySelector('.row__title');
-    const host = r.querySelector('.row__host');
-    const titleBox = title.getBoundingClientRect();
-    const hostBox = host.getBoundingClientRect();
-    return {
-      titleVisible: titleBox.width > 0 && titleBox.height > 0,
-      hostVisible: hostBox.width > 0 && hostBox.height > 0,
-    };
-  }));
-  expect(rows.length).toBeGreaterThan(0);
-  for (const { titleVisible, hostVisible } of rows) {
-    expect(titleVisible).toBe(true);
-    expect(hostVisible).toBe(true);
-  }
-  await ctx.close();
-});
-
-test('contact offers Discord and GitHub only', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const hrefs = await page.locator('[data-reach] a').evaluateAll((els) => els.map((e) => e.href));
-  expect(hrefs.some((h) => h.includes('discord.com'))).toBe(true);
-  expect(hrefs.some((h) => h.includes('github.com'))).toBe(true);
-  expect(hrefs.some((h) => h.startsWith('mailto:'))).toBe(false);
-  await expect(page.locator('form')).toHaveCount(0);
-});
-
-test('the footer carries a real build SHA', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await expect(page.locator('[data-build-sha]')).toHaveText(/^[0-9a-f]{7,40}$|^local$/);
-});
-
-test('no real name, address or contact form appears on any page', async ({ page }) => {
-  await unlock(page);
-  for (const path of ['/', '/links', '/does-not-exist']) {
-    await page.goto(path);
-    const html = (await page.content()).toLowerCase();
-    for (const forbidden of ['tuta.io', 'mailto:']) expect(html, path).not.toContain(forbidden);
-  }
-});
-
-test('the footer palindrome renders its arrow as SVG', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const p = page.locator('.foot__palindrome');
-  await p.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(400);
-  await expect(p.locator('svg')).toHaveCount(1);
-  const text = (await p.innerText()) || (await p.textContent());
-  expect(text).toContain('AGEMO');
-  expect(text).toContain('OMEGA');
-  expect(text).not.toContain('\u27F7');
-});
-
-test('404 renders and offers a way back', async ({ page }) => {
-  const res = await page.goto('/does-not-exist');
-  expect(res.status()).toBe(404);
-  await expect(page.locator('[data-404]')).toBeVisible();
-  await expect(page.locator('[data-404] a[href="/"]')).toBeVisible();
-});
-
-test('every link in links.json is rendered, with a working href', async ({ page }) => {
-  await page.goto('/links');
-  const rows = page.locator('.row__hit');
-  expect(await rows.count()).toBe(links.links.length);
-
-  const hrefs = await rows.evaluateAll((els) => els.map((e) => e.getAttribute('href')));
-  for (const link of links.links) expect(hrefs).toContain(link.url);
-
-  const titles = (await page.locator('.row__title').allTextContents()).map((t) => t.trim());
-  for (const link of links.links) expect(titles).toContain(link.title);
-});
-
-test('link rows open in a new tab without leaking the referrer window', async ({ page }) => {
-  await page.goto('/links');
-  for (const row of await page.locator('.row__hit').all()) {
-    await expect(row).toHaveAttribute('target', '_blank');
-    await expect(row).toHaveAttribute('rel', /noopener/);
-  }
-});
-
-test('links are grouped by tag, one group per distinct tag', async ({ page }) => {
-  await page.goto('/links');
-  const expected = [...new Set(links.links.map((l) => l.tag || 'misc'))];
-  await expect(page.locator('[data-link-group]')).toHaveCount(expected.length);
-  const tags = (await page.locator('.group__tag').allTextContents()).map((t) => t.trim());
-  expect(tags).toEqual(expected);
-});
-
-test('the nav reaches the links page and comes back', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.locator('a[href="/links"]').first().click();
-  await expect(page).toHaveURL(/\/links\/?$/);
-  await expect(page.locator('.vault__title')).toBeVisible();
-
-  await page.locator('.bar__badge').click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator('#ws-home')).toBeVisible();
-});
-
-test('each page declares its own canonical URL', async ({ page }) => {
-  const seen = [];
-  for (const path of ['/', '/links']) {
-    await page.goto(path);
-    seen.push(await page.locator('link[rel=canonical]').getAttribute('href'));
-  }
-  expect(seen[0]).toBe('https://agemo.me/');
-  expect(seen[1]).toBe('https://agemo.me/links/');
-  expect(new Set(seen).size).toBe(2);
-});
-
-test('link row titles are not clipped by their own box', async ({ page }) => {
-  await page.goto('/links');
-  for (const row of await page.locator('.row').all()) {
-    const m = await row.locator('.row__stack').evaluate((el) => ({
-      box: el.clientHeight,
-      title: el.querySelector('.row__title').getBoundingClientRect().height,
-    }));
-    expect(m.title).toBeGreaterThan(0);
-    expect(m.box).toBeGreaterThanOrEqual(m.title);
-  }
-});
-
-for (const width of [360, 768, 1440]) {
-  for (const path of ['/', '/links']) {
-    test(`no horizontal overflow at ${width}px on ${path}`, async ({ browser }) => {
-      const ctx = await browser.newContext({ viewport: { width, height: 900 } });
-      const page = await ctx.newPage();
-      await unlock(page);
-      await page.goto(path);
-      await page.waitForLoadState('networkidle');
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
-      expect(overflow).toBeLessThanOrEqual(1);
-      await ctx.close();
-    });
-  }
+async function scrollHeroTo(page, f) {
+  await page.evaluate((f) => {
+    const hero = document.querySelector('[data-hero]');
+    scrollTo(0, (hero.offsetHeight - innerHeight) * f);
+  }, f);
+  await page.waitForTimeout(150);
 }
 
-test('total JavaScript stays under the budget', async ({ page }) => {
-  let bytes = 0;
-  page.on('response', async (res) => {
-    if (!/javascript/.test(res.headers()['content-type'] ?? '')) return;
-    try { bytes += (await res.body()).length; } catch { /* ignore */ }
-  });
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  expect(bytes).toBeLessThan(80_000);
-});
+/** Visual left edges of the five hero letters, in DOM order. */
+const letterLefts = (page) =>
+  page.$$eval('#hero-word .word__l', (ls) => ls.map((l) => l.getBoundingClientRect().left));
 
-test('lazy chunks are not requested before interaction or visibility', async ({ page }) => {
-  const earlyUrls = [];
-  page.on('response', (res) => {
-    if (/javascript/.test(res.headers()['content-type'] ?? '')) {
-      earlyUrls.push(res.url());
-    }
-  });
-
-  // Check initial load before interaction
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
-  const hasLauncher = earlyUrls.some((u) => /launcher\./.test(u));
-  expect(hasLauncher, 'launcher chunk loaded prematurely').toBe(false);
-});
-
-test('each page has exactly one h1 and a sane heading order', async ({ page }) => {
-  for (const path of ['/', '/links', '/does-not-exist']) {
-    await page.goto(path);
-    expect(await page.locator('h1').count(), path).toBe(1);
-  }
-  await page.goto('/');
-  expect(await page.locator('h2').count()).toBeGreaterThan(0);
-});
-
-test('every image and canvas is either labelled or explicitly decorative', async ({ page }) => {
-  for (const path of ['/', '/links']) {
-    await page.goto(path);
-    const unlabelled = await page.evaluate(() => {
-      const bad = [];
-      for (const el of document.querySelectorAll('img')) {
-        if (!el.hasAttribute('alt')) bad.push('img without alt');
-      }
-      for (const el of document.querySelectorAll('canvas')) {
-        if (!el.closest('[aria-hidden="true"]') && !el.getAttribute('aria-label')) {
-          bad.push(`canvas .${el.className} neither hidden nor labelled`);
-        }
-      }
-      return bad;
-    });
-    expect(unlabelled, path).toEqual([]);
-  }
-});
-
-test('every workspace heading shares the left edge of its first window', async ({ page }) => {
-  await unlock(page);
-  for (const width of [1440, 375]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-
-    const sections = ['#ws-work', '#ws-machine', '#ws-links', '#ws-reach'];
-    for (const s of sections) {
-      await page.locator(s).scrollIntoViewIfNeeded();
-      await page.waitForTimeout(600);
-      const { headLeft, winLeft } = await page.evaluate((secId) => {
-        const sec = document.querySelector(secId);
-        const head = sec.querySelector('.section-heading');
-        const win = sec.querySelector('.win');
-        return {
-          headLeft: head.getBoundingClientRect().left,
-          winLeft: win.getBoundingClientRect().left,
-        };
-      }, s);
-
-      expect(
-        Math.abs(headLeft - winLeft),
-        `heading and window left mismatch in ${s} at ${width}px`,
-      ).toBeLessThanOrEqual(1);
-    }
-  }
-});
-
-test('the hero pair fills the column', async ({ page }) => {
-  await unlock(page);
-  for (const width of [375, 768, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-
-    const { pairWidth, colWidth } = await page.evaluate(() => {
-      const word = document.querySelector('.mirror__word');
-      const wrap = document.querySelector('.wrap');
-      const cs = getComputedStyle(wrap);
-      const col = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      const w = word.getBoundingClientRect().width;
-      return { pairWidth: 2 * w, colWidth: col };
-    });
-
-    expect(pairWidth, `pair width at ${width}px too small`).toBeGreaterThanOrEqual(0.94 * colWidth);
-    expect(pairWidth, `pair width at ${width}px too large`).toBeLessThanOrEqual(colWidth);
-  }
-});
-
-test('the mirrored word starts at the mirror box edge on every page that uses it', async ({ page }) => {
-  for (const path of ['/', '/404.html']) {
+for (const path of PAGES) {
+  test(`${path} loads without errors`, async ({ page }) => {
+    const errors = watchErrors(page);
     await page.goto(path);
     await page.evaluate(() => document.fonts.ready);
-    const gap = await page.evaluate(() => {
-      const m = document.querySelector('[data-mirror]');
-      return Math.abs(m.querySelector('.mirror__word').getBoundingClientRect().left - m.getBoundingClientRect().left);
-    });
-    expect(gap, `word is offset inside the mirror on ${path}`).toBeLessThanOrEqual(1);
-  }
-});
-
-// ==========================================
-// NEW FEATURE TESTS (Lock, Terminal, Launcher, Keys, Bar, Accent)
-// ==========================================
-
-test('lock screen shows on first visit, content is inert, and unlocks on Enter', async ({ page }) => {
-  await page.goto('/');
-  const lock = page.locator('#lock-screen');
-  await expect(lock).toBeVisible();
-
-  const isInert = await page.locator('main').evaluate((el) => el.hasAttribute('inert'));
-  expect(isInert).toBe(true);
-
-  // Press Enter to unlock
-  await page.keyboard.press('Enter');
-  await expect(lock).not.toBeAttached({ timeout: 2000 });
-
-  const isNotInert = await page.locator('main').evaluate((el) => el.hasAttribute('inert'));
-  expect(isNotInert).toBe(false);
-
-  const stored = await page.evaluate(() => sessionStorage.getItem('agemo:unlocked'));
-  expect(stored).toBe('1');
-});
-
-test('lock screen unlocks on click', async ({ page }) => {
-  await page.goto('/');
-  const lock = page.locator('#lock-screen');
-  await expect(lock).toBeVisible();
-
-  await page.locator('#lock-unlock-btn').click();
-  await expect(lock).not.toBeAttached({ timeout: 2000 });
-});
-
-test('lock screen unlocks on wheel', async ({ page }) => {
-  await page.goto('/');
-  const lock = page.locator('#lock-screen');
-  await expect(lock).toBeVisible();
-
-  await page.mouse.wheel(0, 150);
-  await expect(lock).not.toBeAttached({ timeout: 2000 });
-});
-
-test('lock screen does not show on second load in the same context', async ({ page }) => {
-  await page.goto('/');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#lock-screen')).not.toBeAttached({ timeout: 2000 });
-
-  await page.goto('/');
-  await expect(page.locator('#lock-screen')).not.toBeAttached();
-});
-
-test('lock screen does not show with reduced motion, with a hash, or on /links/', async ({ browser }) => {
-  // Reduced motion
-  const ctx = await browser.newContext({ reducedMotion: 'reduce' });
-  const p1 = await ctx.newPage();
-  await p1.goto('/');
-  await expect(p1.locator('#lock-screen')).not.toBeAttached();
-  await ctx.close();
-
-  // With a hash
-  const p2 = await browser.newPage();
-  await p2.goto('/#ws-work');
-  await expect(p2.locator('#lock-screen')).not.toBeAttached();
-  await p2.close();
-
-  // On /links/
-  const p3 = await browser.newPage();
-  await p3.goto('/links');
-  await expect(p3.locator('#lock-screen')).not.toBeAttached();
-  await p3.close();
-});
-
-test('no-JS shows the page without the lock screen overlay', async ({ browser }) => {
-  const ctx = await browser.newContext({ javaScriptEnabled: false });
-  const page = await ctx.newPage();
-  await page.goto('/');
-  await expect(page.locator('#lock-screen')).toBeHidden();
-  await expect(page.locator('main')).toBeVisible();
-  await ctx.close();
-});
-
-test('terminal typing help lists commands and whoami returns omega', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const input = page.locator('.term__input');
-  await input.click();
-  await input.fill('help');
-  await page.keyboard.press('Enter');
-
-  await expect(page.locator('.term__log')).toContainText('Available commands:');
-
-  await input.fill('whoami');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('.term__log')).toContainText('omega');
-});
-
-test('terminal cd work scrolls #ws-work into view and history works with ArrowUp', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const input = page.locator('.term__input');
-  await input.click();
-  await input.fill('whoami');
-  await page.keyboard.press('Enter');
-
-  await page.keyboard.press('ArrowUp');
-  expect(await input.inputValue()).toBe('whoami');
-
-  await input.fill('cd work');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(500);
-
-  const inViewport = await page.locator('#ws-work').evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return r.top < window.innerHeight && r.bottom > 0;
-  });
-  expect(inViewport).toBe(true);
-});
-
-test('terminal theme green changes accent and unknown command prints error', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const input = page.locator('.term__input');
-  await input.click();
-  await input.fill('theme green');
-  await page.keyboard.press('Enter');
-
-  const accentVal = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  expect(accentVal).toBe('#42be65');
-
-  await input.fill('fakecmdxyz');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('.term__log')).toContainText('zsh: command not found: fakecmdxyz');
-});
-
-test('terminal exit command shows lock screen', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const input = page.locator('.term__input');
-  await input.click();
-  await input.fill('exit');
-  await page.keyboard.press('Enter');
-
-  await expect(page.locator('#lock-screen')).toBeVisible({ timeout: 2000 });
-});
-
-test('launcher opens with / and Ctrl+K, closes on Escape, and filters results', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  // Press /
-  await page.keyboard.press('/');
-  const launcher = page.locator('#launcher-modal');
-  await expect(launcher).toHaveClass(/is-open/);
-
-  // Close on Escape
-  await page.keyboard.press('Escape');
-  await expect(launcher).not.toHaveClass(/is-open/);
-
-  // Press Ctrl+K
-  await page.keyboard.press('Control+k');
-  await expect(launcher).toHaveClass(/is-open/);
-
-  // Typing mag puts magpie first
-  await page.locator('.launcher__input').fill('mag');
-  const firstItemText = await page.locator('.launcher__item').first().innerText();
-  expect(firstItemText.toLowerCase()).toContain('magpie');
-});
-
-test('launcher Enter on a workspace scrolls there and restores focus on Escape', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  const launcherBtn = page.locator('[data-launcher-trigger]');
-  await launcherBtn.click();
-  const launcher = page.locator('#launcher-modal');
-  await expect(launcher).toHaveClass(/is-open/);
-
-  // Close with Escape restores focus
-  await page.keyboard.press('Escape');
-  await expect(launcher).not.toHaveClass(/is-open/);
-  await expect(launcherBtn).toBeFocused();
-
-  // Open again, search work, press Enter
-  await page.keyboard.press('/');
-  await page.locator('.launcher__input').fill('work');
-  await page.keyboard.press('Enter');
-  await expect(launcher).not.toHaveClass(/is-open/);
-  await page.waitForTimeout(500);
-
-  const inViewport = await page.locator('#ws-work').evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return r.top < window.innerHeight && r.bottom > 0;
-  });
-  expect(inViewport).toBe(true);
-});
-
-test('Ctrl+K in terminal opens launcher but / does not', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  const termInput = page.locator('.term__input');
-  await termInput.click();
-
-  // Type / inside terminal
-  await page.keyboard.type('/');
-  const launcher = page.locator('#launcher-modal');
-  await expect(launcher).not.toHaveClass(/is-open/);
-  expect(await termInput.inputValue()).toBe('/');
-
-  // Press Ctrl+K inside terminal
-  await page.keyboard.press('Control+k');
-  await expect(launcher).toHaveClass(/is-open/);
-});
-
-test('keys 2 scrolls to work, ? toggles overlay, and keys ignored in terminal', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  // Press ?
-  await page.keyboard.press('?');
-  const overlay = page.locator('#keys-overlay');
-  await expect(overlay).toHaveClass(/is-open/);
-
-  // Press ? again to close
-  await page.keyboard.press('Escape');
-  await expect(overlay).not.toHaveClass(/is-open/);
-
-  // Press 2 to scroll to work
-  await page.keyboard.press('2');
-  await expect.poll(async () => {
-    return page.locator('#ws-work').evaluate((el) => {
-      const r = el.getBoundingClientRect();
-      return r.top < window.innerHeight && r.bottom > 0;
-    });
-  }).toBe(true);
-
-  // Keys ignored in terminal input
-  const termInput = page.locator('.term__input');
-  await termInput.click();
-  await page.keyboard.type('2');
-  expect(await termInput.inputValue()).toBe('2');
-});
-
-test('bar active pill follows scroll and clock displays HH:MM', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  await expect(page.locator('.bar__time')).toHaveText(/^\d{2}:\d{2}$/);
-
-  // Scroll to workspace 2
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(600);
-  await expect(page.locator('.bar__pill[data-name="work"]')).toHaveClass(/is-active/);
-
-  // Scroll to workspace 3
-  await page.locator('#ws-machine').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(600);
-  await expect(page.locator('.bar__pill[data-name="machine"]')).toHaveClass(/is-active/);
-});
-
-test('accent persists across reload and junk value is ignored', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-
-  await page.evaluate(() => localStorage.setItem('agemo:accent', 'rose'));
-  await page.reload();
-  let acc = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  expect(acc).toBe('#ff7eb6');
-
-  // Junk value
-  await page.evaluate(() => localStorage.setItem('agemo:accent', 'invalid_hack'));
-  await page.reload();
-  acc = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  expect(acc).toBe('#78a9ff');
-});
-
-test('windows tile in (get data-revealed) when scrolled into view', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  const machineWin = page.locator('#ws-machine .machine__win-ff');
-  await expect(machineWin).not.toHaveAttribute('data-revealed', '');
-  await machineWin.scrollIntoViewIfNeeded();
-  await expect(machineWin).toHaveAttribute('data-revealed', '', { timeout: 3000 });
-});
-
-test('wallpaper blobs are visible and not covered by opaque backgrounds', async ({ page }) => {
-  await unlock(page);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.waitForTimeout(400);
-
-  const clipBlob = await page.screenshot({
-    clip: { x: 240, y: 180, width: 40, height: 40 },
-  });
-  const clipCorner = await page.screenshot({
-    clip: { x: 40, y: 800, width: 40, height: 40 },
-  });
-  expect(Buffer.compare(clipBlob, clipCorner)).not.toBe(0);
-
-  const els = await page.evaluate(() => {
-    const list = document.elementsFromPoint(260, 200);
-    return list.map((el) => ({
-      cls: el.className || '',
-      bg: getComputedStyle(el).backgroundColor,
-    }));
-  });
-  const blobIdx = els.findIndex((e) => e.cls.includes('wallpaper__blobs'));
-  expect(blobIdx).toBeGreaterThanOrEqual(0);
-  for (let i = 0; i < blobIdx; i++) {
-    const bg = els[i].bg;
-    const isTrans = bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)' || bg === 'rgba(0, 0, 0, 0.0)';
-    expect(isTrans, `Element before wallpaper blobs has non-transparent background ${bg}`).toBe(true);
-  }
-});
-
-test('lock screen applies static blur to main while locked and removes it after unlock', async ({ page }) => {
-  await page.goto('/');
-  const lock = page.locator('#lock-screen');
-  await expect(lock).toBeVisible();
-
-  const filterWhileLocked = await page.locator('main').evaluate((el) => getComputedStyle(el).filter);
-  expect(filterWhileLocked).toContain('blur');
-
-  await page.keyboard.press('Enter');
-  await expect(lock).not.toBeAttached({ timeout: 2000 });
-
-  const filterAfterUnlock = await page.locator('main').evaluate((el) => getComputedStyle(el).filter);
-  expect(filterAfterUnlock).toBe('none');
-});
-
-test('pointer/wheel unlock moves focus to unoutlined target, key unlock focuses badge', async ({ page }) => {
-  // Key unlock
-  await page.goto('/');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(650);
-  let focusedTag = await page.evaluate(() => document.activeElement?.className);
-  expect(focusedTag).toContain('bar__badge');
-
-  // Pointer unlock
-  await page.evaluate(() => sessionStorage.removeItem('agemo:unlocked'));
-  await page.goto('/');
-  const unlockBtn = page.locator('#lock-unlock-btn');
-  await expect(unlockBtn).toBeVisible();
-  await unlockBtn.click();
-  await page.waitForTimeout(650);
-  const activeId = await page.evaluate(() => document.activeElement?.id);
-  expect(activeId).toBe('unfocus-target');
-});
-
-test('WS1 composition: no overlap, fits first viewport, mirror fits left column at 1440 and 1280', async ({ page }) => {
-  await unlock(page);
-  for (const { width, height } of [{ width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
-    await page.setViewportSize({ width, height });
-    await page.goto('/');
-    await page.waitForTimeout(500);
-
-    const wordBox = await page.locator('.mirror__word').boundingBox();
-    expect(wordBox).toBeTruthy();
-
-    // Check intersection with any .win
-    const winBoxes = await page.locator('#ws-home .win').evaluateAll((wins) =>
-      wins.map((w) => {
-        const r = w.getBoundingClientRect();
-        return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
-      })
-    );
-    for (const winBox of winBoxes) {
-      const intersects =
-        wordBox.x < winBox.right &&
-        wordBox.x + wordBox.width > winBox.x &&
-        wordBox.y < winBox.bottom &&
-        wordBox.y + wordBox.height > winBox.y;
-      expect(intersects, `word intersects a window at ${width}x${height}`).toBe(false);
-    }
-
-    // Whole WS1 content fits within first viewport height
-    const ws1Box = await page.locator('#ws-home').boundingBox();
-    expect(ws1Box.y + ws1Box.height).toBeLessThanOrEqual(height + 1);
-
-    // Mirror pair width <= left column width
-    const leftColBox = await page.locator('.ws-home__left').boundingBox();
-    const mirrorBox = await page.locator('.mirror').boundingBox();
-    expect(mirrorBox.width).toBeLessThanOrEqual(leftColBox.width + 1);
-  }
-});
-
-test('terminal output retains spaces in fastfetch summary and hint line', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForTimeout(2200);
-
-  const lines = await page.locator('#ws-home .term__line').evaluateAll((els) =>
-    els.map((el) => el.innerText.trim())
-  );
-  const osLine = lines.find((l) => l.startsWith('os:'));
-  expect(osLine).toBe('os: CachyOS x86_64');
-
-  const hintLine = lines.find((l) => l.includes('for the launcher'));
-  expect(hintLine).toBe('type help, or press / for the launcher');
-});
-
-test('bar workspace pills have correct dimensions (8x8 circle inactive, ~28x18 active)', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.waitForTimeout(400);
-
-  const pills = await page.locator('.bar__pill').evaluateAll((els) =>
-    els.map((p) => {
-      const pip = p.querySelector('.bar__pill-pip');
-      const r = pip ? pip.getBoundingClientRect() : { width: 0, height: 0 };
-      return {
-        isActive: p.classList.contains('is-active'),
-        width: Math.round(r.width),
-        height: Math.round(r.height),
-      };
-    })
-  );
-
-  for (const p of pills) {
-    if (p.isActive) {
-      expect(Math.abs(p.width - 28)).toBeLessThanOrEqual(1);
-      expect(Math.abs(p.height - 18)).toBeLessThanOrEqual(1);
-    } else {
-      expect(Math.abs(p.width - 8)).toBeLessThanOrEqual(1);
-      expect(Math.abs(p.height - 8)).toBeLessThanOrEqual(1);
-    }
-  }
-});
-
-test('mobile bar items are fully inside the viewport at 320, 360, 390, 414', async ({ page }) => {
-  await unlock(page);
-  for (const width of [320, 360, 390, 414]) {
-    await page.setViewportSize({ width, height: 800 });
-    await page.goto('/');
     await page.waitForTimeout(300);
-
-    const items = await page.evaluate(() => {
-      const bar = document.getElementById('bar');
-      const els = bar.querySelectorAll('.bar__badge, .bar__pill, .bar__presence, .bar__launcher-btn, .bar__clock');
-      return Array.from(els).map((el) => {
-        const r = el.getBoundingClientRect();
-        return {
-          tag: el.className,
-          left: r.left,
-          right: r.right,
-          width: r.width,
-        };
-      });
-    });
-
-    for (const item of items) {
-      if (item.width === 0) continue;
-      expect(item.left, `item ${item.tag} left at ${width}px`).toBeGreaterThanOrEqual(0);
-      expect(item.right, `item ${item.tag} right at ${width}px`).toBeLessThanOrEqual(width + 0.5);
-    }
-  }
-});
-
-// ==========================================
-// PART 2 LIVE DEMO TESTS
-// ==========================================
-
-test('keyboard demo: KeyW lights keycap, clicking 2 scrolls, hyprland toggle changes binds, blur clears', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Number row is hidden on mobile screens (<480px) by design');
-  await unlock(page);
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-
-  const kbSlot = page.locator('.demo-slot[data-demo="hypr-keybind-overlay"]');
-  const wKey = kbSlot.locator('[data-code="KeyW"]');
-  await wKey.waitFor({ state: 'visible', timeout: 8000 });
-
-  // Pressing KeyW lights [data-code="KeyW"]
-  await page.keyboard.down('KeyW');
-  await expect(wKey).toHaveClass(/is-lit/);
-  await page.keyboard.up('KeyW');
-  await expect(wKey).not.toHaveClass(/is-lit/);
-
-  // Clicking 2 keycap scrolls to work
-  const twoKey = kbSlot.locator('[data-code="Digit2"]');
-  await twoKey.click();
-  await page.waitForTimeout(400);
-  const scrollY = await page.evaluate(() => window.scrollY);
-  expect(scrollY).toBeGreaterThan(200);
-
-  // Hyprland toggle changes highlighted keys
-  const hyprChip = kbSlot.locator('.live-kb__chip', { hasText: 'hyprland binds' });
-  await hyprChip.click();
-  const qKey = kbSlot.locator('[data-code="KeyQ"]');
-  await expect(qKey).toHaveClass(/is-bound/);
-
-  // Window blur clears any lit keys
-  await page.keyboard.down('KeyW');
-  await expect(wKey).toHaveClass(/is-lit/);
-  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await expect(wKey).not.toHaveClass(/is-lit/);
-});
-
-test('magpie demo: real copy adds clip, search filters, click copies, no storage persistence', async ({ page, browserName, context }) => {
-  if (browserName === 'firefox') {
-    test.skip(true, 'Firefox headless clipboard permission limitations prevent automated copy event readback');
-  }
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-
-  await unlock(page);
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-
-  const magSlot = page.locator('.demo-slot[data-demo="magpie"]');
-  const searchInput = magSlot.locator('.live-magpie__search');
-  await searchInput.waitFor({ state: 'visible', timeout: 8000 });
-
-  // Snapshot storage before
-  const storageBefore = await page.evaluate(() => {
-    return {
-      localKeys: Object.keys(localStorage),
-      sessionKeys: Object.keys(sessionStorage),
-    };
+    expect(errors).toEqual([]);
+    await expect(page.locator('h1')).toHaveCount(1);
   });
 
-  // Select text in hero and copy
-  const tagline = page.locator('.hero__tagline');
-  const taglineText = (await tagline.innerText()).slice(0, 25);
-  await tagline.click({ clickCount: 3 });
-  await page.keyboard.press('ControlOrMeta+c');
-  await page.waitForTimeout(300);
-
-  // Verify new clip added at top
-  const firstCard = magSlot.locator('.live-magpie__card').first();
-  await expect(firstCard).toContainText(taglineText);
-
-  // Search filters
-  await searchInput.fill('paru');
-  const visibleCards = magSlot.locator('.live-magpie__card');
-  expect(await visibleCards.count()).toBe(1);
-  await expect(visibleCards.first()).toContainText('paru');
-  await searchInput.fill('');
-
-  // Entry click copies
-  const clipToCopy = magSlot.locator('.live-magpie__card', { hasText: 'hyprctl reload' });
-  await clipToCopy.click();
-  await page.waitForTimeout(200);
-  const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-  expect(clipboardText).toBe('hyprctl reload');
-
-  // Verify no magpie keys written to storage
-  const storageAfter = await page.evaluate(() => {
-    return {
-      localKeys: Object.keys(localStorage),
-      sessionKeys: Object.keys(sessionStorage),
-    };
-  });
-  expect(storageAfter.localKeys.some((k) => k.includes('magpie') || k.includes('clip'))).toBe(false);
-  expect(storageAfter.sessionKeys.some((k) => k.includes('magpie') || k.includes('clip'))).toBe(false);
-});
-
-test('gamehub demo: W moves left paddle, Escape pauses, site keys suspended while focused', async ({ page }) => {
-  await unlock(page);
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-
-  const ghSlot = page.locator('.demo-slot[data-demo="gamehub"]');
-  const playBtn = ghSlot.locator('.live-gamehub__play-btn');
-  await playBtn.waitFor({ state: 'visible', timeout: 8000 });
-  await playBtn.click();
-
-  const tv = ghSlot.locator('.live-gamehub__tv');
-  await expect(tv).toBeFocused();
-
-  const initialY = Number(await tv.getAttribute('data-left-y'));
-  // Press W to move paddle up
-  await page.keyboard.press('KeyW');
-  await page.keyboard.press('KeyW');
-  await page.waitForTimeout(100);
-  const movedY = Number(await tv.getAttribute('data-left-y'));
-  expect(movedY).toBeLessThan(initialY);
-
-  // While game is focused, site key '1' is suspended (does not scroll)
-  const preScroll = await page.evaluate(() => window.scrollY);
-  await page.keyboard.press('Digit1');
-  await page.waitForTimeout(200);
-  const postScroll = await page.evaluate(() => window.scrollY);
-  expect(Math.abs(postScroll - preScroll)).toBeLessThan(50);
-
-  // Escape pauses and releases focus
-  await page.keyboard.press('Escape');
-  const statusEl = ghSlot.locator('.live-gamehub__status');
-  await expect(statusEl).toContainText('paused');
-
-  // Site key 1 scrolls again after Escape
-  await page.keyboard.press('Digit1');
-  await page.waitForTimeout(500);
-  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(preScroll);
-});
-
-test('jukebox demo: AudioContext only after play, bar widget toggles, hidden stops, terminal play agemo', async ({ page }) => {
-  // Track AudioContext creations
-  await page.addInitScript(() => {
-    window.__audioCtxCount = 0;
-    const OrigAC = window.AudioContext || window.webkitAudioContext;
-    if (OrigAC) {
-      window.AudioContext = class extends OrigAC {
-        constructor(...args) {
-          super(...args);
-          window.__audioCtxCount++;
-        }
-      };
+  test(`${path} never scrolls sideways`, async ({ page }) => {
+    for (const width of [320, 390, 768, 1024, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(path);
+      await page.evaluate(() => document.fonts.ready);
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      expect(over, `overflow at ${width}px`).toBeLessThanOrEqual(0);
     }
   });
 
-  await unlock(page);
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-
-  const jbSlot = page.locator('.demo-slot[data-demo="mc-jukebox"]');
-  const playBtn = jbSlot.locator('.live-jukebox__play-btn');
-  await playBtn.waitFor({ state: 'visible', timeout: 8000 });
-
-  // No AudioContext before play
-  const ctxCountBefore = await page.evaluate(() => window.__audioCtxCount || 0);
-  expect(ctxCountBefore).toBe(0);
-
-  // Play creates one and bar widget appears
-  await playBtn.click();
-  const ctxCountAfter = await page.evaluate(() => window.__audioCtxCount || 0);
-  expect(ctxCountAfter).toBe(1);
-
-  const barWidget = page.locator('#bar-jukebox');
-  await expect(barWidget).toBeVisible();
-  await expect(barWidget).toContainText('disc · omega');
-
-  // Stop removes widget
-  await playBtn.click();
-  await expect(barWidget).toBeHidden();
-
-  // Play again, then emulate document.hidden
-  await playBtn.click();
-  await expect(barWidget).toBeVisible();
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
-    document.dispatchEvent(new Event('visibilitychange'));
+  test(`${path} has no email address or mailto`, async ({ page }) => {
+    await page.goto(path);
+    const html = await page.content();
+    expect(html).not.toMatch(/mailto:/i);
+    expect(html).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
   });
-  await expect(barWidget).toBeHidden();
-
-  // Terminal play agemo starts disc · agemo
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
-  });
-  const termInput = page.locator('.term__input');
-  await termInput.click();
-  await termInput.fill('play agemo');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(200);
-  await expect(barWidget).toBeVisible();
-  await expect(barWidget).toContainText('disc · agemo');
-});
-
-test('notifications: theme green toasts and auto-dismisses, welcome toast fires after unlock', async ({ page }) => {
-  // Fresh session: unlock fires welcome toast
-  await page.goto('/');
-  await page.waitForTimeout(300);
-  await page.keyboard.press('Enter');
-  const toast = page.locator('.toast');
-  await expect(toast).toBeVisible();
-  await expect(toast).toContainText('welcome to cachyos');
-
-  // Terminal theme green toasts
-  const termInput = page.locator('.term__input');
-  await termInput.click();
-  await termInput.fill('theme green');
-  await page.keyboard.press('Enter');
-  const accentToast = page.locator('.toast', { hasText: 'accent · green' });
-  await expect(accentToast).toBeVisible();
-});
-
-test('floating windows: terminal title bar drags within WS1, double-click resets', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Floating windows are desktop-only (width >= 1100px and fine pointer) by spec');
-  await unlock(page);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-
-  const termWin = page.locator('.term-win');
-  const titleBar = termWin.locator('.win__bar');
-  await expect(titleBar).toBeVisible();
-
-  const barBox = await titleBar.boundingBox();
-  expect(barBox).toBeTruthy();
-
-  // Drag 50px down
-  await page.mouse.move(barBox.x + 50, barBox.y + 15);
-  await page.mouse.down();
-  await page.mouse.move(barBox.x + 50, barBox.y + 65);
-  await page.mouse.up();
-
-  const dragY = await termWin.getAttribute('data-drag-y');
-  expect(Number(dragY)).toBeGreaterThan(20);
-
-  // Double click resets position
-  await titleBar.dblclick();
-  await page.waitForTimeout(350);
-  const resetY = await termWin.getAttribute('data-drag-y');
-  expect(Number(resetY)).toBe(0);
-});
-
-test('easter egg: typing agemo mirrors main element', async ({ page }) => {
-  await unlock(page);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-
-  const main = page.locator('main');
-  // Type 'agemo'
-  await page.keyboard.type('agemo', { delay: 60 });
-  await page.waitForTimeout(350);
-
-  const transform = await main.evaluate((el) => getComputedStyle(el).transform);
-  expect(transform).toMatch(/matrix\(-/);
-
-  // Toast is shown
-  const toast = page.locator('.toast', { hasText: 'omega ⟷ agemo' });
-  await expect(toast).toBeVisible();
-});
-
-test('demos lazy: none of demos/*.js requested before scrolling near WS2', async ({ page }) => {
-  await unlock(page);
-  const requestedDemos = [];
-  page.on('request', (req) => {
-    const url = req.url();
-    if (/src\/scripts\/demos\/.+\.js|_astro\/(hypr-keybind-overlay|magpie|gamehub|mc-jukebox)/.test(url)) {
-      requestedDemos.push(url);
-    }
-  });
-
-  await page.goto('/');
-  await page.waitForTimeout(600);
-  expect(requestedDemos).toEqual([]);
-
-  // Scrolling near WS2 loads demos
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1200);
-  expect(requestedDemos.length).toBeGreaterThan(0);
-});
-
-test('JS budget: initial JS and total lazy JS within limits', async () => {
-  const distDir = 'dist/_astro';
-  const files = fs.readdirSync(distDir).filter((f) => f.endsWith('.js'));
-  let totalBytes = 0;
-  for (const file of files) {
-    const stat = fs.statSync(`${distDir}/${file}`);
-    totalBytes += stat.size;
-  }
-  expect(totalBytes).toBeLessThanOrEqual(125000);
-});
-
-// ==========================================
-// SCREENSHOT SUITE (@shots)
-// ==========================================
-
-async function scrollThroughPage(p) {
-  const scrollHeight = await p.evaluate(() => document.documentElement.scrollHeight);
-  const step = 400;
-  for (let y = 0; y <= scrollHeight; y += step) {
-    await p.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), y);
-    await p.waitForTimeout(100);
-  }
-  await p.evaluate(() => {
-    document.querySelectorAll('section[data-ws]').forEach((s) => {
-      s.style.contentVisibility = 'visible';
-    });
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  });
-  await p.waitForTimeout(300);
 }
 
-test('@shots generate evaluation screenshots', async ({ page }) => {
-  test.setTimeout(120000);
-  fs.mkdirSync('/tmp/agemo-shots', { recursive: true });
-
-  // 1. / at 1440x900 locked
-  await page.setViewportSize({ width: 1440, height: 900 });
+test('the first Tab reaches the skip link, and focus is visible', async ({ page, browserName }, info) => {
+  test.skip(info.project.name === 'mobile', 'no keyboard on a phone');
   await page.goto('/');
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-locked.png' });
-
-  // 2. / at 1440x900 unlocked (settled)
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(1600);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-unlocked.png' });
-
-  // 3. / full page at 1440 (scroll through so reveals fire)
-  await scrollThroughPage(page);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-full.png', fullPage: true });
-
-  // 4. / at 390x844 locked, unlocked, full page
-  const mCtx = await page.context().browser().newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-  });
-  const mPage = await mCtx.newPage();
-  await mPage.goto('/');
-  await mPage.waitForTimeout(600);
-  await mPage.screenshot({ path: '/tmp/agemo-shots/home-390-locked.png' });
-
-  await mPage.keyboard.press('Enter');
-  await mPage.waitForTimeout(1600);
-  await mPage.screenshot({ path: '/tmp/agemo-shots/home-390-unlocked.png' });
-
-  await scrollThroughPage(mPage);
-  await mPage.screenshot({ path: '/tmp/agemo-shots/home-390-full.png', fullPage: true });
-  await mCtx.close();
-
-  // 5. / at 1024x768 full page
-  const tCtx = await page.context().browser().newContext({ viewport: { width: 1024, height: 768 } });
-  const tPage = await tCtx.newPage();
-  await unlock(tPage);
-  await tPage.goto('/');
-  await scrollThroughPage(tPage);
-  await tPage.screenshot({ path: '/tmp/agemo-shots/home-1024-full.png', fullPage: true });
-  await tCtx.close();
-
-  // 6. / at 1440x900 with launcher open and mag typed
-  await page.keyboard.press('Control+k');
-  await page.waitForTimeout(300);
-  await page.locator('.launcher__input').fill('mag');
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-launcher-mag.png' });
-  await page.keyboard.press('Escape');
-
-  // 7. / at 1440x900 with keybinds overlay open
-  await page.keyboard.press('?');
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-keybinds.png' });
-  await page.keyboard.press('Escape');
-
-  // 8. / at 1440x900 after running help and fastfetch in terminal
-  const termInput = page.locator('.term__input');
-  await termInput.click();
-  await termInput.fill('help');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(200);
-  await termInput.fill('fastfetch');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: '/tmp/agemo-shots/home-1440-terminal.png' });
-
-  // 9. /links/ at 1440 and 390
-  await page.goto('/links');
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: '/tmp/agemo-shots/links-1440.png', fullPage: true });
-
-  const lCtx = await page.context().browser().newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-  });
-  const lPage = await lCtx.newPage();
-  await lPage.goto('/links');
-  await lPage.waitForTimeout(500);
-  await lPage.screenshot({ path: '/tmp/agemo-shots/links-390.png', fullPage: true });
-  await lCtx.close();
-
-  // 10. /404.html at 1440 and 390
-  await page.goto('/404.html');
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: '/tmp/agemo-shots/404-1440.png' });
-
-  const eCtx = await page.context().browser().newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-  });
-  const ePage = await eCtx.newPage();
-  await ePage.goto('/404.html');
-  await ePage.waitForTimeout(500);
-  await ePage.screenshot({ path: '/tmp/agemo-shots/404-390.png' });
-  await eCtx.close();
-
-  // 11. WS2 at 1440x900 with every demo live (scroll there, wait 1.5s)
-  await page.goto('/');
-  await page.locator('#ws-work').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(1600);
-  await page.screenshot({ path: '/tmp/agemo-shots/ws2-1440-live.png' });
-
-  // 12. WS2 at 390 full height
-  const mWorkCtx = await page.context().browser().newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-  });
-  const mWorkPage = await mWorkCtx.newPage();
-  await unlock(mWorkPage);
-  await mWorkPage.goto('/#ws-work');
-  await mWorkPage.locator('#ws-work').scrollIntoViewIfNeeded();
-  await mWorkPage.waitForTimeout(1600);
-  await mWorkPage.screenshot({ path: '/tmp/agemo-shots/ws2-390-live.png' });
-  await mWorkCtx.close();
-
-  // 13. keyboard with W held; hyprland toggle on
-  const kbSlot = page.locator('.demo-slot[data-demo="hypr-keybind-overlay"]');
-  await kbSlot.scrollIntoViewIfNeeded();
-  const hyprChip = kbSlot.locator('.live-kb__chip', { hasText: 'hyprland binds' });
-  await hyprChip.click();
-  await page.keyboard.down('KeyW');
-  await page.waitForTimeout(150);
-  await page.screenshot({ path: '/tmp/agemo-shots/demo-keyboard-hypr.png' });
-  await page.keyboard.up('KeyW');
-
-  // 14. magpie after two real copies and a search
-  const magSlot = page.locator('.demo-slot[data-demo="magpie"]');
-  await magSlot.scrollIntoViewIfNeeded();
-  await page.evaluate(() => {
-    document.dispatchEvent(new CustomEvent('agemo:copied', { detail: 'git checkout -b rice' }));
-    document.dispatchEvent(new CustomEvent('agemo:copied', { detail: 'pnpm run dev' }));
-  });
-  const searchInput = magSlot.locator('.live-magpie__search');
-  await searchInput.fill('git');
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/agemo-shots/demo-magpie-search.png' });
-
-  // 15. gamehub mid-game and paused state
-  const ghSlot = page.locator('.demo-slot[data-demo="gamehub"]');
-  await ghSlot.scrollIntoViewIfNeeded();
-  const ghPlay = ghSlot.locator('.live-gamehub__play-btn');
-  if (await ghPlay.isVisible()) {
-    await ghPlay.click();
-    await page.waitForTimeout(400);
-  }
-  const ghTv = ghSlot.locator('.live-gamehub__tv');
-  await ghTv.focus();
-  await page.keyboard.press('Escape'); // pause
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/agemo-shots/demo-gamehub-paused.png' });
-
-  // 16. jukebox playing (bar widget visible, disc mid-spin, visualiser bars)
-  const jbSlot = page.locator('.demo-slot[data-demo="mc-jukebox"]');
-  await jbSlot.scrollIntoViewIfNeeded();
-  const jbPlay = jbSlot.locator('.live-jukebox__play-btn');
-  await jbPlay.click();
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: '/tmp/agemo-shots/demo-jukebox-playing.png' });
-
-  // 17. toast visible and agemo mirror
-  await page.keyboard.type('agemo', { delay: 40 });
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/agemo-shots/toast-and-mirror.png' });
-  await page.waitForTimeout(1400);
-
-  // 18. terminal after cowsay moo and fortune
-  await page.locator('#ws-home').scrollIntoViewIfNeeded();
-  const term = page.locator('.term__input');
-  await term.click();
-  await term.fill('cowsay moo');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(100);
-  await term.fill('fortune');
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: '/tmp/agemo-shots/terminal-easter-eggs.png' });
+  await page.keyboard.press('Tab');
+  const focused = page.locator(':focus');
+  await expect(focused).toHaveClass(/skip/);
+  const box = await focused.boundingBox();
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  await page.keyboard.press('Tab');
+  const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  expect(outline).toBe('solid');
 });
 
-test('after a real unlock the reflection stays inside the left column', async ({ page, isMobile }) => {
-  test.skip(isMobile, 'two-column home layout is desktop-only');
-  // The word box is sized from --w, so the script once measured its own box
-  // while the lock screen had the page scaled to 1.04 and kept the inflated
-  // width: AGEMO then ran under the terminal window.
-  for (const [width, height] of [[1440, 900], [1280, 800]]) {
-    await page.setViewportSize({ width, height });
+test('scrolling turns OMEGA into its reflection', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => document.fonts.ready);
+  await scrollHeroTo(page, 0);
+  const start = await letterLefts(page);
+  for (let i = 1; i < 5; i++) expect(start[i]).toBeGreaterThan(start[i - 1]);
+  await expect(page.locator('#hero-word')).toHaveAttribute('aria-label', 'Omega');
+
+  await scrollHeroTo(page, 1);
+  const end = await letterLefts(page);
+  // Order reversed: A, G, E, M, O left to right.
+  for (let i = 1; i < 5; i++) expect(end[i]).toBeLessThan(end[i - 1]);
+  // Each letter is turned over: its rotation matrix has a negative x scale.
+  const flipped = await page.$$eval('#hero-word .word__l', (ls) =>
+    ls.map((l) => new DOMMatrix(getComputedStyle(l).transform).m11));
+  for (const m11 of flipped) expect(m11).toBeLessThan(-0.99);
+  // The word still spans the same width, so nothing was lost off either side.
+  expect(Math.abs((end[0] - end[4]) - (start[4] - start[0]))).toBeLessThan(40);
+  await expect(page.locator('.hero__layer--backing [data-read]')).toHaveText('agemo');
+
+  await scrollHeroTo(page, 0);
+  await expect(page.locator('.hero__layer--backing [data-read]')).toHaveText('omega');
+});
+
+test('both layers move their letters in step', async ({ page }) => {
+  await page.goto('/');
+  await scrollHeroTo(page, 0.4);
+  const tfs = await page.$$eval('.word', (ws) => ws.map((w) => [...w.children].map((l) => l.style.transform)));
+  expect(tfs[0]).toEqual(tfs[1]);
+  expect(tfs[0].some((t) => t && t !== 'none')).toBe(true);
+});
+
+test('the mirror edge rests on the middle and follows the mouse', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'touch screens have no hover pointer');
+  await page.goto('/');
+  const axisX = () => page.$eval('.hero__axis', (a) => a.getBoundingClientRect().left);
+  const vw = page.viewportSize().width;
+  // A scroll with no real pointer must not move it (Chrome's synthetic 0,0 move).
+  await scrollHeroTo(page, 0.1);
+  await page.waitForTimeout(400);
+  expect(Math.abs((await axisX()) - vw / 2)).toBeLessThan(2);
+
+  await page.mouse.move(vw * 0.25, 400, { steps: 4 });
+  await expect.poll(axisX, { timeout: 3000 }).toBeLessThan(vw * 0.25 + 3);
+  expect(await axisX()).toBeGreaterThan(vw * 0.25 - 3);
+  // The silvered copy is clipped exactly at the edge.
+  const clip = await page.$eval('.hero__layer--silver', (l) => getComputedStyle(l).clipPath);
+  expect(clip).toMatch(/inset/);
+});
+
+test.describe('reduced motion', () => {
+  test('the word stays put and the hero is one screen', async ({ page }) => {
+    // test.use({ reducedMotion }) does not reach the page in this setup;
+    // emulateMedia does, and the first assertion proves it took.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
-    await page.evaluate(() => { try { sessionStorage.clear(); } catch {} });
-    await page.goto('/');
-    await expect(page.locator('#lock-unlock-btn')).toBeVisible();
-    await page.keyboard.press('Enter');
-    await page.waitForTimeout(2500);
-    const m = await page.evaluate(() => {
-      const mirror = document.querySelector('[data-mirror]');
-      const word = mirror.querySelector('.mirror__word');
-      const range = document.createRange();
-      range.selectNodeContents(word);
-      return {
-        x: parseFloat(getComputedStyle(mirror).getPropertyValue('--x')),
-        glyphs: range.getBoundingClientRect().width,
-        imageRight: mirror.querySelector('.mirror__image').getBoundingClientRect().right,
-        columnRight: document.querySelector('.ws-home__right').getBoundingClientRect().left,
-      };
-    });
-    expect(Math.abs(m.x - m.glyphs), `--x vs glyph width at ${width}`).toBeLessThanOrEqual(2);
-    expect(m.imageRight, `reflection right edge at ${width}`).toBeLessThanOrEqual(m.columnRight);
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+    const h = await page.$eval('[data-hero]', (e) => e.offsetHeight);
+    expect(h).toBeLessThanOrEqual((await page.evaluate(() => innerHeight)) + 1);
+    await page.evaluate(() => scrollTo(0, 400));
+    await page.waitForTimeout(200);
+    const tfs = await page.$$eval('#hero-word .word__l', (ls) => ls.map((l) => l.style.transform));
+    expect(tfs.every((t) => t === '')).toBe(true);
+  });
+});
+
+test('pinned shows every pinned repo, linked to GitHub', async ({ page }) => {
+  await page.goto('/');
+  const rows = page.locator('#pinned .repo__link');
+  await expect(rows).toHaveCount(repos.length);
+  for (const [i, r] of repos.entries()) {
+    await expect(rows.nth(i)).toHaveAttribute('href', r.url);
+    await expect(rows.nth(i).locator('.repo__name')).toHaveText(r.name);
+    if (r.description) await expect(rows.nth(i).locator('.repo__desc')).toHaveText(r.description);
+  }
+});
+
+test('hovering a repo unfolds the reflection of its name', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'no hover on touch');
+  await page.goto('/');
+  const name = page.locator('#pinned .repo__name').first();
+  const ghost = () => name.evaluate((n) => {
+    const s = getComputedStyle(n, '::after');
+    return { o: Number(s.opacity), m11: new DOMMatrix(s.transform).m11, text: s.content };
+  });
+  expect((await ghost()).o).toBe(0);
+  await page.locator('#pinned .repo__link').first().hover();
+  await expect.poll(async () => (await ghost()).m11, { timeout: 2000 }).toBeLessThan(-0.99);
+  const g = await ghost();
+  expect(g.o).toBeGreaterThan(0.3);
+  // Firefox reports the unresolved attr() rather than the string it resolves to.
+  expect([`"${repos[0].name}"`, 'attr(data-name)']).toContain(g.text);
+  await expect(name).toHaveAttribute('data-name', repos[0].name);
+});
+
+test('elsewhere links to discord, github and the links page', async ({ page }) => {
+  await page.goto('/');
+  const hrefs = await page.$$eval('.way', (as) => as.map((a) => a.getAttribute('href')));
+  expect(hrefs).toEqual([
+    expect.stringContaining('discord.com/users/'),
+    'https://github.com/omeg4-dev',
+    '/links/',
+  ]);
+});
+
+test('hyprland and cachyos are mentioned, not the theme', async ({ page }) => {
+  await page.goto('/');
+  const text = (await page.locator('body').innerText()).toLowerCase();
+  expect((text.match(/cachyos/g) ?? []).length).toBeLessThanOrEqual(1);
+  // One mention in prose, plus wherever a repo's own description names it.
+  const fromRepos = repos.filter((r) => /hyprland/i.test(r.description)).length;
+  expect((text.match(/hyprland/g) ?? []).length).toBeLessThanOrEqual(1 + fromRepos);
+});
+
+test('links page lists every entry under its tag', async ({ page }) => {
+  await page.goto('/links/');
+  for (const l of links) {
+    const row = page.locator(`a.repo__link[href="${l.url}"]`);
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.repo__name')).toHaveText(l.title);
+    const tag = await row.evaluate((a) => a.closest('section').querySelector('h2').textContent);
+    expect(tag).toBe(l.tag || 'misc');
+  }
+  await expect(page.locator('.nav a[aria-current="page"]')).toHaveText('links');
+});
+
+test('404 says so and leads home', async ({ page }) => {
+  await page.goto('/404.html');
+  await expect(page.locator('h1')).toHaveText('404');
+  await expect(page.locator('a.home')).toHaveAttribute('href', '/');
+});
+
+test('tap targets are at least 44px tall', async ({ page }) => {
+  await page.goto('/');
+  const small = await page.$$eval('a', (as) => as
+    .filter((a) => !a.classList.contains('skip') && a.offsetParent !== null)
+    .map((a) => ({ t: a.textContent.trim(), h: a.getBoundingClientRect().height }))
+    .filter((x) => x.h < 44));
+  expect(small).toEqual([]);
+});
+
+test('screenshots @shots', async ({ page }, info) => {
+  await page.goto('/');
+  await page.evaluate(() => document.fonts.ready);
+  for (const f of [0, 0.3, 0.6, 1]) {
+    await scrollHeroTo(page, f);
+    await page.screenshot({ path: `test-results/shots/${info.project.name}-hero-${f}.png` });
+  }
+  for (const id of ['pinned', 'elsewhere']) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: `test-results/shots/${info.project.name}-${id}.png` });
+  }
+  for (const p of ['/links/', '/404.html']) {
+    await page.goto(p);
+    await page.screenshot({ path: `test-results/shots/${info.project.name}${p.replace(/\W/g, '-')}.png`, fullPage: true });
   }
 });

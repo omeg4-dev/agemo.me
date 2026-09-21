@@ -1,21 +1,20 @@
 ---
-import '../styles/tokens.css';
-import '../styles/base.css';
+import '../styles/site.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 
-import Notifications from '../components/Notifications.astro';
-
-const { title, description } = Astro.props;
-
+interface Props { title: string; description: string; here?: string }
+const { title, description, here } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#161616" />
+    <meta name="theme-color" content="#0b1311" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -23,49 +22,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="preload" href="/fonts/anybody.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/hanken-grotesk.woff2" as="font" type="font/woff2" crossorigin />
-    <script is:inline>
-      try {
-        var a = localStorage.getItem('agemo:accent');
-        var p = {blue:'#be95ff',cyan:'#78a9ff',green:'#3ddbd9',pink:'#be95ff',purple:'#ee5396',rose:'#be95ff'};
-        var c = {blue:'#78a9ff',cyan:'#3ddbd9',green:'#42be65',pink:'#ee5396',purple:'#be95ff',rose:'#ff7eb6'};
-        if (a && c[a]) {
-          document.documentElement.style.setProperty('--accent', c[a]);
-          document.documentElement.style.setProperty('--accent-2', p[a]);
-        }
-        var pth = location.pathname;
-        var isHome = pth === '/' || pth === '/index.html';
-        if (isHome && !location.hash && !sessionStorage.getItem('agemo:unlocked') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          document.documentElement.classList.add('locked');
-        }
-      } catch(e) {}
-    </script>
+    <link rel="preload" href="/fonts/bodoni.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
-    <slot />
-    <Notifications />
+    <a class="skip" href="#main">Skip to content</a>
+    <Nav here={here} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>
-
-<style is:global>
-  @font-face {
-    font-family: 'Anybody';
-    src: url('/fonts/anybody.woff2') format('woff2');
-    font-weight: 100 900;
-    font-stretch: 50% 150%;
-    font-display: swap;
-  }
-  @font-face {
-    font-family: 'Hanken Grotesk';
-    src: url('/fonts/hanken-grotesk.woff2') format('woff2');
-    font-weight: 100 900;
-    font-display: swap;
-  }
-  @font-face {
-    font-family: 'IBM Plex Mono';
-    src: url('/fonts/plex-mono.woff2') format('woff2');
-    font-weight: 400 700;
-    font-display: swap;
-  }
-</style>
