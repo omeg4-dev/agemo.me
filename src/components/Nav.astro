@@ -1,0 +1,14 @@
+---
+import site from '../config/site.mjs';
+const { here } = Astro.props;
+---
+<header class="nav">
+  <a class="nav__mark" href="/" aria-label="Omega, home">Ω <small>agemo.me</small></a>
+  <nav aria-label="Main">
+    <ul class="nav__links">
+      <li><a href="/#pinned">work</a></li>
+      <li><a href="/links/" aria-current={here === 'links' ? 'page' : undefined}>links</a></li>
+      <li><a href={site.links.discord} rel="me noopener">discord</a></li>
+    </ul>
+  </nav>
+</header>
