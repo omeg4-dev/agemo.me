@@ -3,34 +3,40 @@ import site from '../config/site.mjs';
 import data from '../data/repos.json' with { type: 'json' };
 import { relativeAge } from '../../scripts/repos-transform.mjs';
 
-const repos = data.pinned;
 const built = new Date(data.generatedAt ?? Date.now());
-const words = ['none', 'one', 'two', 'three', 'four', 'five', 'six'];
-const count = words[repos.length] ?? String(repos.length);
+
+// GitHub pins first, in pin order, then the work that lives elsewhere.
+const rows = [
+  ...data.pinned.map((r) => ({
+    name: r.name,
+    description: r.description,
+    href: site.pages[r.name] ?? r.url,
+    meta: [r.language, r.pushedAt ? `updated ${relativeAge(r.pushedAt, built)}` : ''],
+  })),
+  ...site.extras.map((x) => ({ name: x.name, description: x.description, href: x.href, meta: [x.kind, ''] })),
+];
+const internal = (href: string) => href.startsWith('/');
 ---
-<section class="section" id="pinned" aria-labelledby="pinned-title">
+<section class="section" id="work" aria-labelledby="work-title">
   <div class="head">
-    <h2 id="pinned-title">Pinned</h2>
-    <p class="mono">{count} repositories, chosen on github</p>
+    <h2 id="work-title">Work</h2>
+    <p class="mono">pinned repos first, then the rest</p>
   </div>
   <ul class="repos">
-    {repos.map((r) => {
-      const age = r.pushedAt ? `updated ${relativeAge(r.pushedAt, built)}` : '';
-      return (
-        <li class="repo">
-          <a class="repo__link" href={r.url} rel="noopener">
-            <span class="repo__name" data-name={r.name} data-long={r.name.length > 12 ? '' : undefined}>{r.name}</span>
-            <p class="repo__desc">{r.description}</p>
-            <span class="repo__meta mono">
-              {r.language && <span class="repo__lang">{r.language}</span>}
-              {age && <span class="repo__age">{age}</span>}
-              <span class="repo__arrow" aria-hidden="true">↗</span>
-            </span>
-            <span class="repo__sub mono">{[r.language, age].filter(Boolean).join(' · ')}</span>
-          </a>
-        </li>
-      );
-    })}
+    {rows.map((r) => (
+      <li class="repo">
+        <a class="repo__link" href={r.href} rel={internal(r.href) ? undefined : 'noopener'} data-internal={internal(r.href) ? '' : undefined}>
+          <span class="repo__name" data-name={r.name} data-long={r.name.length > 12 ? '' : undefined}>{r.name}</span>
+          <p class="repo__desc">{r.description}</p>
+          <span class="repo__meta mono">
+            {r.meta[0] && <span class="repo__lang">{r.meta[0]}</span>}
+            {r.meta[1] && <span class="repo__age">{r.meta[1]}</span>}
+            <span class="repo__arrow" aria-hidden="true">{internal(r.href) ? '→' : '↗'}</span>
+          </span>
+          <span class="repo__sub mono">{r.meta.filter(Boolean).join(' · ')}</span>
+        </a>
+      </li>
+    ))}
   </ul>
   <p class="more mono"><a href={site.links.github} rel="me noopener">everything else on github →</a></p>
 </section>

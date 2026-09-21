@@ -9,6 +9,14 @@ Astro 5, static, no framework. Project data is fetched from the GitHub API at
 build time into `src/data/repos.json`, so the site builds offline and makes no
 runtime API calls.
 
+## Project pages
+
+`/jerkcraft/`, `/games/`, `/bot/` and `/abi/` are one page each in `src/pages/`,
+built on `src/layouts/Sub.astro` and deliberately not in the home page's style:
+each carries its own fonts and CSS. `/jerkcraft/` reads live stats from
+`https://dactylus.app/mc/stats/data/` in the browser. Home-page rows link to
+them through `pages` and `extras` in `src/config/site.mjs`.
+
 ## Adding a link to /links
 
 Edit `src/data/links.json` and append an object to `links`:

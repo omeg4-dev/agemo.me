@@ -1,0 +1,247 @@
+---
+import Sub from '../layouts/Sub.astro';
+
+const parts = [
+  {
+    title: 'Starts from the teacher, not the AI',
+    note: 'teacher > book > AI',
+    body: [
+      'The class notebooks come in page by page, locally and for free: text, tables, the embedded images and the attached worksheets.',
+      'When the app explains something, it uses the teacher’s method first, then the textbook’s, and only then anything an AI came up with. It uses the notation from class, so nothing has to be translated in the exam.',
+    ],
+  },
+  {
+    title: 'The textbook, searchable',
+    note: 'free until it isn’t',
+    body: [
+      'The whole book is indexed for full-text search, so “chain rule” finds the page, the snippet and the figure without asking anyone.',
+      'Only when a page is mostly formulas does a vision model read it, on request and in a batch at half price.',
+    ],
+  },
+  {
+    title: 'Method cards',
+    note: 'exactly like on the board',
+    body: [
+      'Each topic becomes a card of steps written the way they were taught, with a worked example next to them. Stuck on a task? The card for that step opens instead of a wall of text.',
+    ],
+    example: true,
+  },
+  {
+    title: 'A budget brake',
+    note: 'student budget!',
+    body: [
+      'Before any call, the app counts the tokens (that part is free) and works out the most the answer could cost. If that would go over the monthly limit, the call doesn’t happen.',
+      'Cheap models handle the routine questions and the expensive one only the hard ones. The limit is a hard stop, not a warning.',
+    ],
+    meter: true,
+  },
+  {
+    title: 'Knows when the exams are',
+    note: 'read-only!',
+    body: [
+      'It reads the timetable and the exam calendar, so the week before an exam turns into a plan: which chapters, in what order, and for how long each day.',
+    ],
+  },
+];
+---
+<Sub
+  title="Abi-Coach · agemo.me"
+  description="Abi-Coach, a local-first tutor for the Abitur in maths and computer science that learns from the teacher’s own notes, on a hard budget."
+  theme="#fbfaf6"
+  fonts={['source-serif', 'caveat']}
+  bodyClass="paper"
+>
+  <main id="main" class="sheet">
+    <a class="back hand" href="/">← back to agemo.me</a>
+
+    <header class="title">
+      <h1>
+        <span class="mark-wrap">Abi-Coach
+          <svg class="pen pen--underline" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M4 10 C80 4 200 6 296 9" /><path d="M10 19 C90 14 190 15 290 17" />
+          </svg>
+        </span>
+      </h1>
+      <p class="hand hand--aside" aria-hidden="true">my exam tutor ↙</p>
+      <p class="lede">A study app for the Abitur in maths and computer science. It works from what the class actually uses: the textbook, the teacher’s notes and past exam papers. It asks an AI only when that really helps, and it runs on a fixed budget.</p>
+    </header>
+
+    {parts.map((p) => (
+      <section class="part" data-part>
+        <div class="margin" aria-hidden="true">
+          <svg class="pen pen--tick" viewBox="0 0 40 32"><path d="M4 18 L14 27 L36 4" /></svg>
+          <p class="hand">{p.note}</p>
+        </div>
+        <div class="part__body">
+          <h2>{p.title}</h2>
+          {p.body.map((t) => <p>{t}</p>)}
+          {p.example && (
+            <figure class="card">
+              <figcaption class="card__head">Plane in coordinate form</figcaption>
+              <ol class="card__steps">
+                <li>Normal vector from the coefficients: <span class="math">n = (2, −1, 3)</span></li>
+                <li>Plug in a point on the plane, <span class="math">P(1, −1, 1)</span>: <span class="math">2·1 − (−1) + 3·1 = 6</span></li>
+                <li>Done: <span class="math boxed">E: 2x₁ − x₂ + 3x₃ = 6</span></li>
+              </ol>
+              <p class="hand hand--card" aria-hidden="true">always check the point! ✓</p>
+            </figure>
+          )}
+          {p.meter && (
+            <div class="meter" role="img" aria-label="An example month: about a tenth of the limit spent">
+              <div class="meter__bar"><span></span></div>
+              <div class="meter__scale"><span>0 €</span><span class="hand">hard stop →</span><span>limit</span></div>
+            </div>
+          )}
+        </div>
+      </section>
+    ))}
+
+    <footer class="foot">
+      <p>Private for now: it’s built around one person’s classes and notebooks. Written in Python, local-first, with everything secret kept outside the repository.</p>
+      <p class="hand" aria-hidden="true">— Ω</p>
+    </footer>
+  </main>
+</Sub>
+
+<style is:global>
+  @font-face { font-family: 'Source Serif 4'; src: url('/fonts/source-serif.woff2') format('woff2'); font-weight: 400 700; font-display: swap; }
+  @font-face { font-family: 'Caveat'; src: url('/fonts/caveat.woff2') format('woff2'); font-weight: 400 700; font-display: swap; }
+
+  body.paper {
+    --paper: #fbfaf6;
+    --grid: rgb(64 110 160 / 0.16);
+    --ink: #22252b;
+    --pencil: #5d6168;
+    --blue: #1d4fb8;
+    --red: #d2382c;
+    --sq: 20px;
+    margin: 0;
+    color: var(--ink);
+    font: 400 1.125rem/1.6 'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--paper);
+    /* Squared paper, 5 mm to the square. */
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: var(--sq) var(--sq);
+    overflow-x: clip;
+  }
+  .paper *, .paper *::before, .paper *::after { box-sizing: border-box; }
+  .paper :focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .paper .skip { position: absolute; left: 16px; top: -100px; z-index: 100; padding: 10px 14px; background: var(--blue); color: #fff; }
+  .paper .skip:focus { top: 12px; }
+
+  .sheet {
+    position: relative;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px 96px clamp(56px, 16vw, 200px);
+  }
+  /* The red margin rule. */
+  .sheet::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: calc(clamp(56px, 16vw, 200px) - 20px);
+    width: 2px;
+    background: rgb(210 56 44 / 0.55);
+  }
+
+  .hand { font-family: 'Caveat', cursive; color: var(--blue); font-size: 1.5rem; line-height: 1.1; margin: 0; }
+  .back { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+
+  .title { margin: 40px 0 72px; position: relative; }
+  .title h1 { margin: 0; font-weight: 700; font-size: clamp(3rem, 2rem + 5vw, 5.5rem); line-height: 1; letter-spacing: -0.02em; }
+  .mark-wrap { position: relative; display: inline-block; }
+  .hand--aside { position: absolute; top: -18px; left: clamp(250px, 44vw, 440px); transform: rotate(-6deg); font-size: 1.75rem; }
+  @media (max-width: 520px) {
+    .hand--aside { position: static; margin-top: 26px; transform: rotate(-3deg); }
+  }
+  .lede { max-width: 38ch; margin: 36px 0 0; font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.5rem); line-height: 1.5; }
+
+  /* Red pen: marks that draw themselves as they arrive. */
+  .pen path {
+    fill: none;
+    stroke: var(--red);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    transition: stroke-dashoffset 0.9s cubic-bezier(0.6, 0, 0.3, 1);
+  }
+  .pen--underline { position: absolute; left: -2%; bottom: -18px; width: 104%; height: 24px; overflow: visible; }
+  .pen--underline path:nth-child(2) { transition-delay: 0.35s; }
+  .is-drawn .pen path, .title.is-drawn .pen path { stroke-dashoffset: 0; }
+
+  .part {
+    position: relative;
+    display: grid;
+    margin-bottom: 64px;
+  }
+  .margin {
+    position: absolute;
+    right: calc(100% + 28px);
+    top: 4px;
+    width: clamp(40px, 13vw, 170px);
+    text-align: right;
+  }
+  .pen--tick { width: 34px; height: 28px; display: inline-block; }
+  .margin .hand { font-size: 1.375rem; transform: rotate(-4deg); margin-top: 4px; }
+  @media (max-width: 720px) {
+    .margin .hand { display: none; }
+  }
+
+  .part h2 { margin: 0 0 12px; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem); line-height: 1.2; letter-spacing: -0.01em; }
+  .part p { margin: 0 0 14px; max-width: 60ch; }
+
+  .card {
+    position: relative;
+    margin: 22px 0 8px;
+    max-width: 560px;
+    padding: 18px 22px 22px;
+    background: #fffdf2;
+    border: 1px solid #e4dcbc;
+    box-shadow: 0 1px 0 #e4dcbc, 0 14px 26px -18px rgb(60 50 20 / 0.45);
+    transform: rotate(-0.6deg);
+  }
+  .card__head { font-weight: 700; margin-bottom: 8px; }
+  .card__steps { margin: 0; padding-left: 1.3em; }
+  .card__steps li { margin-bottom: 6px; }
+  .math { font-style: italic; white-space: nowrap; }
+  .boxed { font-style: normal; font-weight: 600; padding: 1px 8px; border: 2px solid var(--red); border-radius: 3px; }
+  .hand--card { position: absolute; right: -8px; bottom: -24px; transform: rotate(-5deg); }
+
+  .meter { max-width: 520px; margin: 18px 0 0; }
+  .meter__bar { height: 22px; border: 2px solid var(--ink); border-radius: 4px; padding: 2px; background: var(--paper); }
+  .meter__bar span { display: block; height: 100%; width: 0; background: repeating-linear-gradient(-45deg, var(--blue) 0 4px, transparent 4px 8px); transition: width 1.2s cubic-bezier(0.6, 0, 0.3, 1) 0.3s; }
+  .is-drawn .meter__bar span { width: 11%; }
+  .meter__scale { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; font-size: 0.9rem; color: var(--pencil); }
+  .meter__scale .hand { color: var(--red); font-size: 1.25rem; }
+
+  .foot { margin-top: 88px; padding-top: 18px; border-top: 1px solid rgb(34 37 43 / 0.25); color: var(--pencil); max-width: 60ch; }
+  .foot p { margin: 0 0 8px; }
+  .foot .hand { font-size: 2rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pen path { transition: none; stroke-dashoffset: 0; }
+    .meter__bar span { transition: none; width: 11%; }
+  }
+</style>
+
+<script>
+  // Red pen marks draw as their section scrolls in; everything is readable without them.
+  const targets = document.querySelectorAll('.title, [data-part]');
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('is-drawn'); io.unobserve(e.target); }
+      }
+    }, { rootMargin: '0px 0px -20% 0px' });
+    targets.forEach((t) => io.observe(t));
+  } else {
+    targets.forEach((t) => t.classList.add('is-drawn'));
+  }
+</script>

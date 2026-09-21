@@ -1,0 +1,281 @@
+---
+import Sub from '../layouts/Sub.astro';
+
+// Dactylus Airbus's slash commands, as departures. Only the ones fit for a
+// public page: the bot has others that stay on the server.
+const flights = [
+  ['08:05', '/casino', 'Casino floor', 'C1', 'Boarding'],
+  ['08:20', '/casino_profile', 'Your stat card', 'C2', 'On time'],
+  ['08:35', '/casino_ranks', 'Ranks and what they need', 'C3', 'On time'],
+  ['08:50', '/casino_leaderboard', 'Top players', 'C4', 'On time'],
+  ['09:10', '/profile', 'Your voice level', 'V1', 'On time'],
+  ['09:25', '/leaderboard', 'Voice leaderboard', 'V2', 'On time'],
+  ['09:40', '/music', 'Music control panel', 'M1', 'Boarding'],
+  ['10:00', '/quote', 'Quote archive', 'Q1', 'On time'],
+  ['10:15', '/speak', 'The classic Hans voice', 'S1', 'On time'],
+  ['10:30', '/roast', 'AI roast, three strengths', 'R1', 'Delayed'],
+  ['10:45', '/durstloescher', 'Invent a new flavour', 'D1', 'On time'],
+  ['11:00', '/versmaßknacker', 'German verse meter', 'L1', 'On time'],
+  ['11:15', '/karusell', 'Every voice channel', 'K1', 'Gate change'],
+  ['11:30', '/fake_disconnect', 'Fake disconnect sounds', 'T1', 'On time'],
+  ['11:45', '/jumpscare', 'One loud scream', 'T2', 'Last call'],
+  ['12:00', '@Dactylus', 'AI chat, just mention it', 'A1', 'On time'],
+];
+const tone = (s: string) => ({ Boarding: 'go', Delayed: 'warn', 'Gate change': 'warn', 'Last call': 'hot' } as Record<string, string>)[s] ?? 'ok';
+---
+<Sub
+  title="Dactylus Airbus · agemo.me"
+  description="Dactylus Airbus, the Discord bot for a friends' server: casino, voice leveling, music, AI chat. Its commands, as a departures board."
+  theme="#0b0d10"
+  fonts={['b612-mono', 'b612']}
+  bodyClass="air"
+>
+  <header class="air-top">
+    <a class="air-back" href="/">← agemo.me</a>
+    <p class="air-clock" aria-hidden="true"><span data-clock>--:--</span> local</p>
+  </header>
+
+  <main id="main" class="air-main">
+    <div class="air-head">
+      <p class="air-carrier"><span class="air-logo" aria-hidden="true">DA</span> Dactylus Airbus</p>
+      <h1>Departures <span lang="de">Abflug</span></h1>
+    </div>
+
+    <div class="board" data-board>
+      <table>
+        <caption class="sr-only">Dactylus Airbus commands, listed as departures</caption>
+        <thead>
+          <tr><th scope="col">Time</th><th scope="col">Flight</th><th scope="col">Destination</th><th scope="col">Gate</th><th scope="col">Status</th></tr>
+        </thead>
+        <tbody>
+          {flights.map(([time, cmd, dest, gate, status], i) => (
+            <tr style={`--row:${i}`}>
+              <td class="c-time"><span class="flap" data-flap>{time}</span></td>
+              <th scope="row" class="c-flight"><span class="sr-only">{cmd}</span><span class="cells" aria-hidden="true">{[...cmd].map((ch) => <span class="cell" data-cell={ch}>{ch}</span>)}</span></th>
+              <td class="c-dest"><span class="flap" data-flap>{dest}</span></td>
+              <td class="c-gate"><span class="flap" data-flap>{gate}</span></td>
+              <td class="c-status" data-tone={tone(status)}><span class="flap" data-flap>{status}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <section class="pass" aria-labelledby="pass-title">
+      <div class="pass__main">
+        <p class="pass__label">Boarding pass</p>
+        <h2 id="pass-title">About the bot</h2>
+        <p>Dactylus Airbus is the flag carrier of a Discord server for a group of friends, and it is part pterodactyl, part plane. It runs a casino with ranks and stat cards, voice-channel leveling with image leaderboards, a music panel, and a parody ad network called JerkAds. Mention it and it talks back through a chain of AI providers.</p>
+        <p>It also publishes the player stats for the friends’ Minecraft server, and those feed the live scoreboard on the <a href="/jerkcraft/">JerkCraft page</a>.</p>
+        <dl class="pass__grid">
+          <div><dt>Passenger</dt><dd>You</dd></div>
+          <div><dt>Written in</dt><dd>Python</dd></div>
+          <div><dt>Seat</dt><dd>Voice channel</dd></div>
+          <div><dt>Class</dt><dd>Economy nonsense</dd></div>
+        </dl>
+      </div>
+      <a class="pass__stub" href="https://dactylus.app" rel="noopener">
+        <span class="pass__label">Home base</span>
+        <span class="pass__dest">dactylus.app ↗</span>
+        <span class="barcode" aria-hidden="true"></span>
+      </a>
+    </section>
+  </main>
+</Sub>
+
+<style is:global>
+  @font-face { font-family: 'B612 Mono'; src: url('/fonts/b612-mono.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'B612 Mono'; src: url('/fonts/b612-mono-bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+  @font-face { font-family: 'B612'; src: url('/fonts/b612.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'B612'; src: url('/fonts/b612-bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+  body.air {
+    --hall: #0b0d10;
+    --board: #050607;
+    --flap: #16181b;
+    --amber: #ffb627;
+    --dim: #a7adb5;
+    --line: #23262b;
+    --paper: #f3efe4;
+    margin: 0;
+    background: radial-gradient(120% 80% at 50% -10%, #1c222b 0%, var(--hall) 60%);
+    background-color: var(--hall);
+    color: #e9e6df;
+    font: 400 1rem/1.55 'B612', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    min-height: 100vh;
+  }
+  .air *, .air *::before, .air *::after { box-sizing: border-box; }
+  .air a { color: inherit; }
+  .air :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .air .skip { position: absolute; left: 16px; top: -100px; z-index: 100; padding: 10px 14px; background: var(--amber); color: #000; }
+  .air .skip:focus { top: 12px; }
+  .air .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  .air-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 0;
+    font: 400 0.875rem 'B612 Mono', monospace;
+    color: var(--dim);
+  }
+  .air-back { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+  .air-back:hover { color: var(--amber); }
+  .air-clock { margin: 0; }
+  .air-clock span { color: var(--amber); font-weight: 700; font-size: 1.125rem; }
+
+  .air-main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  .air-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 32px; margin-bottom: 18px; }
+  .air-carrier { display: flex; align-items: center; gap: 12px; margin: 0; font: 700 1.125rem 'B612', sans-serif; letter-spacing: 0.02em; }
+  .air-logo {
+    display: grid; place-items: center;
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #6fa8cd, #2d5f86);
+    color: #fff;
+    font: 700 1rem 'B612 Mono', monospace;
+  }
+  .air-head h1 {
+    margin: 0;
+    font: 700 clamp(2rem, 1.2rem + 3.6vw, 3.75rem)/1 'B612', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .air-head h1 span { color: var(--dim); font-weight: 400; font-size: 0.5em; letter-spacing: 0.1em; margin-left: 0.4em; }
+
+  /* The board */
+  .board {
+    background: var(--board);
+    border: 1px solid #2c3036;
+    border-radius: 10px;
+    padding: clamp(8px, 1.4vw, 18px);
+    box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.9), inset 0 1px 0 #1d2126;
+    overflow-x: auto;
+  }
+  .board table { width: 100%; border-collapse: separate; border-spacing: 0 5px; font-family: 'B612 Mono', monospace; }
+  .board thead th {
+    padding: 4px 10px;
+    text-align: left;
+    color: var(--dim);
+    font-weight: 400;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .board td, .board tbody th {
+    padding: 8px 10px;
+    background: var(--flap);
+    color: var(--amber);
+    text-align: left;
+    font-weight: 700;
+    font-size: clamp(0.875rem, 0.8rem + 0.35vw, 1.0625rem);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    background-image: linear-gradient(transparent calc(50% - 0.5px), rgb(0 0 0 / 0.85) calc(50% - 0.5px), rgb(0 0 0 / 0.85) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  }
+  .board tr > :first-child { border-radius: 4px 0 0 4px; }
+  .board tr > :last-child { border-radius: 0 4px 4px 0; }
+  .board td + td, .board th + td, .board td + th { border-left: 3px solid var(--board); }
+
+  .c-flight { text-transform: none !important; }
+  .cells { display: inline-flex; gap: 2px; }
+  .cell {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.05em;
+    padding: 1px 1px;
+    background: #202328;
+    border-radius: 2px;
+    color: #f4f1ea;
+    background-image: linear-gradient(transparent calc(50% - 0.5px), rgb(0 0 0 / 0.9) calc(50% - 0.5px), rgb(0 0 0 / 0.9) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  }
+  .cell.is-flipping { animation: flip 0.08s linear; }
+  @keyframes flip { 50% { transform: scaleY(0.2); } }
+
+  .c-status[data-tone='go'] { color: #6cf08a; }
+  .c-status[data-tone='warn'] { color: #ff8b5c; }
+  .c-status[data-tone='hot'] .flap { animation: blink 1.1s steps(2, jump-none) infinite; color: #ff5c5c; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+
+  @media (max-width: 760px) {
+    .board { padding: 8px; }
+    .board thead { display: none; }
+    .board tbody tr {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas: 'time flight gate' 'dest dest status';
+      margin-bottom: 6px;
+      background: var(--flap);
+      border-radius: 4px;
+    }
+    .board td, .board tbody th { border: 0 !important; border-radius: 0 !important; background-image: none; padding: 6px 10px; }
+    .c-time { grid-area: time; }
+    .c-flight { grid-area: flight; min-width: 0; white-space: normal !important; }
+    .cells { flex-wrap: wrap; gap: 1px; font-size: 0.8125rem; }
+    .cell { min-width: 0.95em; }
+    .board table, .board tbody { display: block; }
+    .c-gate { grid-area: gate; text-align: right !important; }
+    .c-dest { grid-area: dest; color: #e9e6df !important; white-space: normal !important; }
+    .c-status { grid-area: status; text-align: right !important; }
+  }
+
+  /* Boarding pass */
+  .pass {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
+    margin-top: clamp(40px, 6vw, 72px);
+    color: #1c1b18;
+    filter: drop-shadow(0 24px 30px rgb(0 0 0 / 0.5));
+  }
+  .pass__main, .pass__stub {
+    background: var(--paper);
+    padding: clamp(20px, 3vw, 36px);
+  }
+  .pass__main { border-radius: 16px 0 0 16px; }
+  .pass__main h2 { margin: 0 0 12px; font: 700 clamp(1.5rem, 1.1rem + 1.4vw, 2.25rem) 'B612', sans-serif; }
+  .pass__main p { max-width: 62ch; }
+  .pass__main a { color: #2d5f86; font-weight: 700; }
+  .pass__label { display: block; margin: 0 0 6px; font: 400 0.75rem 'B612 Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #6b675c; }
+  .pass__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 22px 0 0; }
+  .pass__grid dt { font: 400 0.6875rem 'B612 Mono', monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #6b675c; }
+  .pass__grid dd { margin: 2px 0 0; font-weight: 700; }
+  .pass__stub {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 0 16px 16px 0;
+    border-left: 2px dashed #b9b3a3;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+  .pass__stub:hover { background: #fff8e6; }
+  .pass__dest { font: 700 1.375rem 'B612', sans-serif; color: #2d5f86; }
+  .barcode {
+    margin-top: auto;
+    height: 64px;
+    background: repeating-linear-gradient(90deg, #1c1b18 0 2px, transparent 2px 4px, #1c1b18 4px 7px, transparent 7px 8px, #1c1b18 8px 9px, transparent 9px 12px);
+  }
+  @media (max-width: 760px) {
+    .pass { grid-template-columns: 1fr; }
+    .pass__main { border-radius: 16px 16px 0 0; }
+    .pass__stub { border-radius: 0 0 16px 16px; border-left: 0; border-top: 2px dashed #b9b3a3; }
+    .pass__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cell.is-flipping, .c-status[data-tone='hot'] .flap { animation: none; }
+  }
+</style>
+
+<script>
+  import { initBoard } from '../scripts/board.js';
+  initBoard();
+</script>
