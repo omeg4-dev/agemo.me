@@ -24,6 +24,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/bodoni.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin />
+    <slot name="head" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>

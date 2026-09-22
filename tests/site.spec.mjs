@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const repos = JSON.parse(fs.readFileSync(new URL('../src/data/repos.json', import.meta.url))).pinned;
 const links = JSON.parse(fs.readFileSync(new URL('../src/data/links.json', import.meta.url))).links;
-const PAGES = ['/', '/links/', '/404.html'];
+const PAGES = ['/', '/links/', '/404.html', '/text/'];
 
 function watchErrors(page) {
   const errors = [];

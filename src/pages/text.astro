@@ -1,0 +1,393 @@
+---
+import Base from '../layouts/Base.astro';
+
+const papers = [
+  { id: 'lined', label: 'Lined' },
+  { id: 'grid', label: 'Squared' },
+  { id: 'plain', label: 'Plain' },
+  { id: 'none', label: 'None' },
+];
+const inks = [
+  { id: 'navy', label: 'Navy' },
+  { id: 'black', label: 'Black' },
+  { id: 'red', label: 'Red' },
+];
+---
+<Base
+  title="Handwriting · Omega ⟷ agemO"
+  description="Paste text and get it back in handwriting, with maths. Lined, squared, plain or transparent paper, and one tap to copy the image."
+  here="text"
+>
+  <link slot="head" rel="preload" href="/fonts/caveat.woff2" as="font" type="font/woff2" crossorigin />
+
+  <div class="page tool" data-tool>
+    <header class="tool__head">
+      <h1>Handwriting</h1>
+      <p>Paste anything. It comes back written by hand — maths included, between dollar signs. Then copy the image.</p>
+    </header>
+
+    <div class="tool__grid">
+      <section class="pane" aria-label="Your text and the settings">
+        <label class="sr-only" for="src">Text to write out</label>
+        <textarea id="src" class="src" data-input spellcheck="false" autocapitalize="sentences" placeholder="Paste your text here. Maths goes between $ signs, like $e^{i\pi} + 1 = 0$."></textarea>
+
+        <div class="srcbar">
+          <button class="btn btn--quiet" type="button" data-paste>Paste</button>
+          <button class="btn btn--quiet" type="button" data-sample>Example</button>
+          <button class="btn btn--quiet" type="button" data-clear>Clear</button>
+          <span class="count mono" data-count></span>
+        </div>
+
+        <div class="controls">
+          <div class="field">
+            <span class="field__label mono" id="paper-label">Paper</span>
+            <div class="choice" role="radiogroup" aria-labelledby="paper-label">
+              {papers.map((p) => (
+                <button class="choice__item" type="button" role="radio" aria-checked="false" data-paper-option={p.id}>
+                  <span class={`swatch swatch--${p.id}`} aria-hidden="true"></span>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field__label mono" id="ink-label">Ink</span>
+            <div class="choice choice--ink" role="radiogroup" aria-labelledby="ink-label">
+              {inks.map((i) => (
+                <button class="choice__item choice__item--dot" type="button" role="radio" aria-checked="false" data-ink-option={i.id} aria-label={i.label}>
+                  <span class={`dot dot--${i.id}`} aria-hidden="true"></span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label mono" for="neat">Hand</label>
+            <input id="neat" class="slider" type="range" min="0" max="100" step="1" value="55" data-neat aria-describedby="neat-ends" />
+            <p class="ends mono" id="neat-ends"><span>scrawl</span><span>careful</span></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label mono" for="size">Size</label>
+            <input id="size" class="slider" type="range" min="20" max="48" step="1" value="30" data-size />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn--primary" type="button" data-copy>Copy image</button>
+          <button class="btn" type="button" data-save>Save PNG</button>
+        </div>
+        <p class="status mono" role="status" aria-live="polite" data-status></p>
+      </section>
+
+      <section class="pane pane--paper" aria-label="Preview">
+        <div class="sheet" data-sheet data-paper="lined">
+          <div class="sheet__ink" data-ink></div>
+        </div>
+      </section>
+    </div>
+
+    <svg class="hidden-svg" width="0" height="0" aria-hidden="true" focusable="false">
+      <filter id="hw-ink" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="7" result="noise" data-turbulence />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" data-displace />
+      </filter>
+    </svg>
+  </div>
+</Base>
+
+<style is:global>
+  @font-face {
+    font-family: 'Caveat';
+    src: url('/fonts/caveat.woff2') format('woff2');
+    font-weight: 400 700;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'La Belle Aurore';
+    src: url('/fonts/la-belle.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Homemade Apple';
+    src: url('/fonts/homemade-apple.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  .tool {
+    --hand: 'Caveat', 'Segoe Script', cursive;
+    --hand-loose: 'La Belle Aurore', 'Caveat', cursive;
+    --hand-size: 30px;
+    --pane: #101b18;
+    --edge: rgb(216 222 219 / 0.16);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 96px);
+  }
+
+  .tool__head { max-width: 1500px; margin: 0 auto clamp(20px, 3vw, 36px); }
+  .tool__head h1 {
+    margin: 0 0 10px;
+    font: italic 400 clamp(2.5rem, 1.8rem + 3vw, 4rem)/1 var(--display);
+    letter-spacing: -0.01em;
+  }
+  .tool__head p { margin: 0; max-width: 54ch; color: var(--lead); }
+
+  .tool__grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    gap: clamp(16px, 2vw, 28px);
+    max-width: 1500px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .pane {
+    min-width: 0;
+    background: var(--pane);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    padding: clamp(14px, 1.6vw, 20px);
+  }
+
+  .src {
+    display: block;
+    width: 100%;
+    /* Firefox sizes a textarea from its cols, which would stop the column
+       shrinking on a narrow phone. */
+    min-width: 0;
+    min-height: clamp(150px, 22vh, 260px);
+    padding: 12px 14px;
+    resize: vertical;
+    background: #0b1311;
+    color: var(--silver);
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    font: 400 16px/1.5 var(--mono);
+  }
+  .src:focus-visible { outline: 2px solid var(--glass); outline-offset: 2px; }
+
+  .srcbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  .count { margin-left: auto; color: var(--lead); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--glass);
+    background: transparent;
+    color: var(--silver);
+    font: 500 0.9375rem var(--sans);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  .btn:hover { background: rgb(141 224 204 / 0.12); }
+  .btn--quiet { border-color: var(--edge); color: var(--lead); padding: 0 14px; }
+  .btn--quiet:hover { color: var(--silver); }
+  .btn--primary { background: var(--glass); border-color: var(--glass); color: var(--backing); font-weight: 600; flex: 1; }
+  .btn--primary:hover { background: #a6eedd; }
+
+  .controls { display: grid; gap: 16px; margin-top: 18px; }
+  .field__label { display: block; margin-bottom: 8px; color: var(--lead); }
+
+  .choice { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choice__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px 0 10px;
+    border-radius: 999px;
+    border: 1px solid var(--edge);
+    background: transparent;
+    color: var(--lead);
+    font: 400 0.875rem var(--sans);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .choice__item[aria-checked='true'] { border-color: var(--glass); color: var(--silver); background: rgb(141 224 204 / 0.1); }
+  .choice__item--dot { padding: 0; width: 44px; justify-content: center; }
+
+  .swatch {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: 1px solid rgb(11 19 17 / 0.35);
+    background: #fffdf8;
+  }
+  .swatch--lined { background-image: repeating-linear-gradient(#fffdf8 0 5px, #9ec0e8 5px 6px); }
+  .swatch--grid {
+    background-image:
+      repeating-linear-gradient(#fffdf800 0 5px, #9ec0e8 5px 6px),
+      repeating-linear-gradient(90deg, #fffdf800 0 5px, #9ec0e8 5px 6px);
+  }
+  .swatch--none {
+    background:
+      conic-gradient(#d8dedb 0 25%, #8c9c97 0 50%, #d8dedb 0 75%, #8c9c97 0) 0 0 / 10px 10px;
+  }
+  .dot { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgb(216 222 219 / 0.3); }
+  .dot--navy { background: #1c3f8f; }
+  .dot--black { background: #1d1f24; }
+  .dot--red { background: #a8281f; }
+
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 44px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #7a5a3a, var(--glass)); }
+  .slider::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #7a5a3a, var(--glass)); }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px; height: 28px;
+    margin-top: -11px;
+    border-radius: 50%;
+    background: var(--silver);
+    border: 2px solid var(--backing);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+  }
+  .slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--silver); border: 2px solid var(--backing); }
+  .slider:focus-visible { outline: 2px solid var(--glass); outline-offset: 4px; border-radius: 8px; }
+  .ends { display: flex; justify-content: space-between; margin: 2px 0 0; color: var(--lead); }
+
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .status { min-height: 1.4em; margin: 10px 0 0; color: var(--glass); }
+
+  /* ─── the paper ─── */
+
+  .pane--paper { padding: clamp(10px, 1.2vw, 16px); background: #0d1714; }
+
+  .sheet {
+    --paper-fill: #fffdf8;
+    --paper-rule: #b9cfe8;
+    --rule-step: calc(var(--hand-size) * 1.62);
+    --ink: #1c3f8f;
+    position: relative;
+    min-height: min(72vh, 900px);
+    padding: calc(var(--rule-step) * 0.9) clamp(18px, 3vw, 44px);
+    border-radius: 8px;
+    background-color: var(--paper-fill);
+    box-shadow: 0 20px 50px -28px rgb(0 0 0 / 0.8);
+    overflow: hidden;
+  }
+  .sheet[data-paper='lined'] {
+    background-image: repeating-linear-gradient(transparent 0 calc(var(--rule-step) - 1px), var(--paper-rule) calc(var(--rule-step) - 1px) var(--rule-step));
+  }
+  .sheet[data-paper='grid'] {
+    background-image:
+      repeating-linear-gradient(transparent 0 calc(var(--rule-step) - 1px), var(--paper-rule) calc(var(--rule-step) - 1px) var(--rule-step)),
+      repeating-linear-gradient(90deg, transparent 0 calc(var(--rule-step) - 1px), var(--paper-rule) calc(var(--rule-step) - 1px) var(--rule-step));
+  }
+  .sheet[data-paper='none'] {
+    background-color: transparent;
+    background-image: conic-gradient(rgb(216 222 219 / 0.09) 0 25%, transparent 0 50%, rgb(216 222 219 / 0.09) 0 75%, transparent 0);
+    background-size: 22px 22px;
+    box-shadow: none;
+    border: 1px dashed var(--edge);
+  }
+
+  .sheet__ink {
+    /* Sit the writing on the ruled lines, not floating above them. */
+    margin-top: 0.42em;
+    font-family: var(--hand);
+    font-size: var(--hand-size);
+    line-height: 1.62;
+    color: var(--ink);
+    filter: url(#hw-ink);
+    overflow-wrap: break-word;
+  }
+  .sheet[data-paper='none'] .sheet__ink { color: var(--ink); }
+
+  .hw-w {
+    display: inline-block;
+    white-space: pre;
+    transform: translateY(var(--wy, 0)) skewX(var(--wk, 0deg));
+  }
+  .hw-g {
+    display: inline-block;
+    transform: translate(var(--x, 0), var(--y, 0)) rotate(var(--r, 0deg)) scale(var(--s, 1));
+  }
+  .hw-g--loose { font-family: var(--hand-loose); }
+
+  .hw-math { color: var(--ink); }
+  .hw-math--block { margin: 0.35em 0; text-align: center; }
+  .hw-math--bad { color: #a8281f; font-family: var(--mono); font-size: 0.6em; }
+  .hw-math--waiting { font-family: var(--mono); font-size: 0.5em; opacity: 0.55; }
+
+  /* KaTeX keeps its own fonts for the big operators and brackets; the
+     letters and digits take the handwriting instead. */
+  .sheet .katex { color: var(--ink); font-size: 0.86em; }
+  .sheet .katex .mathnormal,
+  .sheet .katex .mathdefault,
+  .sheet .katex .mathrm,
+  .sheet .katex .textrm,
+  .sheet .katex .mord:not([class*='math']):not(.accent-body):not(.delimsizing):not(.op-symbol) {
+    font-family: var(--hand);
+    font-style: normal;
+  }
+
+  /* While the picture is being taken, the page holds still. */
+  .sheet.is-measuring .sheet__ink { filter: none; }
+  .sheet.is-measuring .hw-g,
+  .sheet.is-measuring .hw-w { transform: none; }
+
+  .hidden-svg { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* ─── iPad and phone ─── */
+
+  /* Tablet: the paper stays in view while the settings scroll under it. */
+  @media (max-width: 1080px) {
+    .tool__grid { grid-template-columns: minmax(0, 1fr); }
+    .pane--paper {
+      order: -1;
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 60px);
+      z-index: 2;
+      max-height: 54vh;
+      overflow: auto;
+    }
+    .sheet { min-height: min(46vh, 560px); }
+    .tool { padding-bottom: 96px; }
+  }
+  /* Phone: there is no room to pin anything, so everything just scrolls. */
+  @media (max-width: 700px) {
+    .pane--paper { position: static; max-height: none; overflow: visible; }
+    .sheet { min-height: min(54vh, 520px); }
+  }
+  @media (max-width: 700px) {
+    .tool { padding-top: calc(env(safe-area-inset-top, 0px) + 84px); padding-bottom: 120px; }
+    .choice__item { flex: 1 1 auto; justify-content: center; }
+    /* Copy stays within thumb reach, over everything else. */
+    .actions {
+      position: fixed;
+      left: var(--gutter);
+      right: var(--gutter);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+      z-index: 5;
+      margin: 0;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgb(16 27 24 / 0.92);
+      border: 1px solid var(--edge);
+      box-shadow: 0 16px 30px -18px rgb(0 0 0 / 0.9);
+      backdrop-filter: blur(10px);
+    }
+    .status { position: fixed; left: var(--gutter); right: var(--gutter); bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); z-index: 5; text-align: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .choice__item { transition: none; }
+  }
+</style>
+
+<script>
+  import { initTextTool } from '../scripts/text-tool.js';
+  initTextTool();
+</script>

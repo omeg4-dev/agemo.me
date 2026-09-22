@@ -17,9 +17,10 @@
     "test:lh": "lhci autorun"
   },
   "devDependencies": {
-    "astro": "^5.0.0",
+    "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.49.0",
-    "@lhci/cli": "^0.14.0"
+    "astro": "^5.0.0",
+    "katex": "^0.18.7"
   },
   "allowScripts": {
     "esbuild@0.27.7": true,
