@@ -299,6 +299,38 @@ a { color: inherit; }
   font-weight: 400;
   color: var(--glass);
 }
+/* vibecoding: the word carries a wave of colour and a little wobble, one
+   letter at a time. It reads perfectly still when motion is turned off. */
+.vibe {
+  display: inline-block;
+  font-family: var(--display);
+  font-style: italic;
+  filter: drop-shadow(0 0 14px rgb(141 224 204 / 0.35));
+}
+.vibe > span {
+  display: inline-block;
+  color: var(--glass);
+  animation:
+    vibe-colour 3.2s ease-in-out infinite,
+    vibe-wave 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.14s), calc(var(--i) * 0.07s);
+}
+@keyframes vibe-colour {
+  0%, 100% { color: var(--glass); }
+  35% { color: var(--silver); }
+  65% { color: var(--tarnish); }
+}
+@keyframes vibe-wave {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-0.1em) rotate(-2deg); }
+}
+.vibe:hover > span { animation-duration: 1.6s, 1s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe { filter: none; }
+  .vibe > span { animation: none; color: var(--glass); }
+}
+
 .statement .aside {
   margin-top: clamp(28px, 4vw, 48px);
   color: var(--lead);

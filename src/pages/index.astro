@@ -3,15 +3,17 @@ import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import Work from '../components/Work.astro';
 import Elsewhere from '../components/Elsewhere.astro';
+
+// The word gets one span per letter so the colour and the wobble can run
+// through it a letter at a time.
+const vibe = [...'vibecoding'];
 ---
-<Base title="Omega ⟷ agemO" description="Omega makes small programs, mostly in Python: a clipboard history, party games for the TV, desktop widgets.">
+<Base title="Omega ⟷ agemO" description="Omega vibecodes small programs, mostly in Python: a clipboard history, party games for the TV, desktop widgets.">
   <Hero />
   <section class="section" aria-label="About">
     <div class="statement">
       <p>
-        I make things I want for myself: a clipboard history, party games for
-        the TV that you play with your phone, a few widgets for my desktop.
-        Mostly Python, all of it on GitHub.
+        I love <span class="vibe" data-vibe>{vibe.map((c, i) => <span style={`--i:${i}`}>{c}</span>)}</span>.
       </p>
       <p class="aside">I use cachyos with hyprland.</p>
     </div>
