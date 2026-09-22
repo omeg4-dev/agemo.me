@@ -47,8 +47,6 @@ export function initMirror() {
   const stick = hero.querySelector('[data-stick]');
   const words = [...hero.querySelectorAll('.word')];
   const sets = words.map((w) => [...w.querySelectorAll('.word__l')]);
-  const reads = [...hero.querySelectorAll('[data-read]')];
-  const hints = [...hero.querySelectorAll('[data-hint]')];
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -88,8 +86,6 @@ export function initMirror() {
     if (nowFlipped !== flipped) {
       flipped = nowFlipped;
       hero.dataset.flipped = String(flipped);
-      for (const r of reads) r.textContent = flipped ? 'agemo' : 'omega';
-      for (const h of hints) h.textContent = flipped ? '· reflected' : '· scroll to turn it over';
     }
   }
 

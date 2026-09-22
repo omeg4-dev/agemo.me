@@ -5,13 +5,11 @@ import { relativeAge } from '../../scripts/repos-transform.mjs';
 
 const repos = data.pinned;
 const built = new Date(data.generatedAt ?? Date.now());
-const words = ['none', 'one', 'two', 'three', 'four', 'five', 'six'];
-const count = words[repos.length] ?? String(repos.length);
 ---
 <section class="section" id="pinned" aria-labelledby="pinned-title">
   <div class="head">
     <h2 id="pinned-title">Pinned</h2>
-    <p class="mono">{count} repositories, chosen on github</p>
+    <p class="mono">pinned on github</p>
   </div>
   <ul class="repos">
     {repos.map((r) => {
@@ -19,7 +17,7 @@ const count = words[repos.length] ?? String(repos.length);
       return (
         <li class="repo">
           <a class="repo__link" href={r.url} rel="noopener">
-            <span class="repo__name" data-name={r.name} data-long={r.name.length > 12 ? '' : undefined}>{r.name}</span>
+            <span class="repo__name">{r.name}</span>
             <p class="repo__desc">{r.description}</p>
             <span class="repo__meta mono">
               {r.language && <span class="repo__lang">{r.language}</span>}

@@ -86,10 +86,10 @@ test('scrolling turns OMEGA into its reflection', async ({ page }) => {
   for (const m11 of flipped) expect(m11).toBeLessThan(-0.99);
   // The word still spans the same width, so nothing was lost off either side.
   expect(Math.abs((end[0] - end[4]) - (start[4] - start[0]))).toBeLessThan(40);
-  await expect(page.locator('.hero__layer--backing [data-read]')).toHaveText('agemo');
+  await expect(page.locator('[data-hero]')).toHaveAttribute('data-flipped', 'true');
 
   await scrollHeroTo(page, 0);
-  await expect(page.locator('.hero__layer--backing [data-read]')).toHaveText('omega');
+  await expect(page.locator('[data-hero]')).toHaveAttribute('data-flipped', 'false');
 });
 
 test('both layers move their letters in step', async ({ page }) => {
@@ -145,22 +145,32 @@ test('pinned shows every pinned repo, linked to GitHub', async ({ page }) => {
   }
 });
 
-test('hovering a repo unfolds the reflection of its name', async ({ page }, info) => {
+test('the mirror is only in the hero: nothing else is flipped', async ({ page }) => {
+  for (const path of ['/', '/links/', '/404.html']) {
+    await page.goto(path);
+    await page.evaluate(() => document.fonts.ready);
+    const flipped = await page.evaluate(() => {
+      const hits = [];
+      for (const el of document.querySelectorAll('body *')) {
+        if (el.closest('[data-hero]')) continue;
+        for (const pseudo of [null, '::before', '::after']) {
+          const t = getComputedStyle(el, pseudo).transform;
+          if (t && t !== 'none' && new DOMMatrix(t).m11 < 0) hits.push(`${el.tagName}.${el.className}${pseudo ?? ''}`);
+        }
+      }
+      return hits;
+    });
+    expect(flipped, path).toEqual([]);
+  }
+});
+
+test('hovering a repo tints its name', async ({ page }, info) => {
   test.skip(info.project.name === 'mobile', 'no hover on touch');
   await page.goto('/');
   const name = page.locator('#pinned .repo__name').first();
-  const ghost = () => name.evaluate((n) => {
-    const s = getComputedStyle(n, '::after');
-    return { o: Number(s.opacity), m11: new DOMMatrix(s.transform).m11, text: s.content };
-  });
-  expect((await ghost()).o).toBe(0);
+  const before = await name.evaluate((n) => getComputedStyle(n).color);
   await page.locator('#pinned .repo__link').first().hover();
-  await expect.poll(async () => (await ghost()).m11, { timeout: 2000 }).toBeLessThan(-0.99);
-  const g = await ghost();
-  expect(g.o).toBeGreaterThan(0.3);
-  // Firefox reports the unresolved attr() rather than the string it resolves to.
-  expect([`"${repos[0].name}"`, 'attr(data-name)']).toContain(g.text);
-  await expect(name).toHaveAttribute('data-name', repos[0].name);
+  await expect.poll(() => name.evaluate((n) => getComputedStyle(n).color), { timeout: 2000 }).not.toBe(before);
 });
 
 test('elsewhere links to discord, github and the links page', async ({ page }) => {

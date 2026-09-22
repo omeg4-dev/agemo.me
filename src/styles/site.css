@@ -235,13 +235,6 @@ a { color: inherit; }
   font-size: 1.12em;
 }
 
-.hero__read {
-  margin: 0;
-  text-align: right;
-  white-space: nowrap;
-}
-.hero__read b { font-weight: 500; }
-
 .hero__axis {
   position: absolute;
   top: 0;
@@ -265,21 +258,8 @@ a { color: inherit; }
 .hero__axis::before { top: 22%; }
 .hero__axis::after { bottom: 22%; }
 
-.hero__top {
-  grid-row: 1;
-  align-self: end;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 0 0 clamp(20px, 5vh, 56px);
-  color: var(--lead);
-}
-.hero__layer--silver .hero__top { color: var(--lead-dark); }
-.hero__top { text-transform: none; }
-
 @media (max-width: 640px) {
   .hero__foot { flex-direction: column; align-items: start; gap: 12px; }
-  .hero__read { text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -367,21 +347,6 @@ a { color: inherit; }
   overflow-wrap: anywhere;
 }
 
-/* The name's reflection, unfolding off its right edge on hover. */
-.repo__name::after {
-  content: attr(data-name);
-  position: absolute;
-  top: 0;
-  left: 100%;
-  white-space: nowrap;
-  color: var(--glass);
-  opacity: 0;
-  transform-origin: 0 50%;
-  transform: scaleX(0);
-  transition: transform 0.6s var(--ease), opacity 0.4s var(--ease);
-  pointer-events: none;
-}
-
 .repo__desc {
   margin: 0;
   color: var(--silver);
@@ -403,16 +368,12 @@ a { color: inherit; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .repo__link:hover .repo__name::after {
-    opacity: 0.55;
-    transform: scaleX(-1);
-  }
+  .repo__name { transition: color 0.3s var(--ease); }
+  .repo__link:hover .repo__name { color: var(--glass); }
   .repo__link:hover .repo__arrow {
     transform: translate(3px, -3px);
     color: var(--glass);
   }
-  /* A long name has no room beside it for the reflection. */
-  .repo__link:hover .repo__name[data-long]::after { opacity: 0; }
 }
 
 @media (max-width: 860px) {
@@ -529,7 +490,7 @@ a { color: inherit; }
 }
 .footer p { margin: 0; }
 
-/* ─── reflected titles (links, 404) ─────────────────── */
+/* ─── links, 404 ─────────────────────────────────────── */
 
 .page {
   padding: calc(env(safe-area-inset-top, 0px) + 120px) var(--gutter) clamp(80px, 12vw, 160px);
@@ -537,32 +498,11 @@ a { color: inherit; }
 }
 
 .title {
-  display: flex;
-  align-items: baseline;
   max-width: 1400px;
   margin: 0 auto clamp(40px, 6vw, 80px);
   font: 400 clamp(3.5rem, 1.5rem + 11vw, 11rem)/0.9 var(--display);
   letter-spacing: -0.02em;
 }
-.title h1 { font: inherit; margin: 0; }
-.title__rule {
-  align-self: stretch;
-  width: 1px;
-  margin: 0 0.12em;
-  background: var(--glass);
-}
-.title__ghost {
-  display: inline-block;
-  color: var(--glass);
-  opacity: 0.5;
-  transform: scaleX(-1);
-  white-space: nowrap;
-}
-@media (max-width: 520px) {
-  .title__ghost[data-long] { display: none; }
-  .title__rule[data-long] { display: none; }
-}
-
 .group { max-width: 1400px; margin: 0 auto clamp(48px, 6vw, 80px); }
 .group h2 {
   margin: 0 0 14px;

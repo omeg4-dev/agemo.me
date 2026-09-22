@@ -14,7 +14,6 @@ const layers = ['backing', 'silver'];
         aria-hidden={n > 0 ? 'true' : undefined}
         inert={n > 0 ? true : undefined}
       >
-        <p class="hero__top mono" aria-hidden="true"><span>Ω, the last letter</span><span>read from the other side</span></p>
         {n === 0 ? (
           <h1 class="word" id="hero-word" aria-label="Omega">
             {letters.map((l) => <span class="word__l" aria-hidden="true">{l}</span>)}
@@ -25,8 +24,7 @@ const layers = ['backing', 'silver'];
           </div>
         )}
         <div class="hero__foot">
-          <p class="hero__line"><em>Omega</em> writes small, stubborn software. Mostly Python, always open source.</p>
-          <p class="hero__read mono" aria-hidden="true">reads <b data-read>omega</b> <span data-hint>· scroll to turn it over</span></p>
+          <p class="hero__line">Hi, I’m Omega. I make small programs, mostly in Python.</p>
         </div>
       </div>
     ))}

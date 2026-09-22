@@ -1,6 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-import Reflected from '../components/Reflected.astro';
 import data from '../data/links.json' with { type: 'json' };
 
 // Rows are grouped by tag, in the order the tags first appear in the file.
@@ -18,7 +17,7 @@ const host = (url: string) => {
 ---
 <Base title="Links · Omega ⟷ agemO" description="Pointers worth keeping." here="links">
   <div class="page">
-    <Reflected text="Links" />
+    <h1 class="title">Links</h1>
     {groups.map((g) => (
       <section class="group" aria-labelledby={`tag-${g.tag}`}>
         <h2 class="mono" id={`tag-${g.tag}`}>{g.tag}</h2>
@@ -26,7 +25,7 @@ const host = (url: string) => {
           {g.items.map((l) => (
             <li class="repo">
               <a class="repo__link" href={l.url} rel="noopener">
-                <span class="repo__name" data-name={l.title} data-long={l.title.length > 12 ? '' : undefined}>{l.title}</span>
+                <span class="repo__name">{l.title}</span>
                 <p class="repo__desc">{l.note}</p>
                 <span class="repo__meta mono">
                   <span class="repo__lang">{host(l.url)}</span>
