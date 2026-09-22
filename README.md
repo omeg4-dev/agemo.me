@@ -9,6 +9,18 @@ Astro 5, static, no framework. Project data is fetched from the GitHub API at
 build time into `src/data/repos.json`, so the site builds offline and makes no
 runtime API calls.
 
+## /text
+
+A tool page: paste text, get it back as handwriting, with LaTeX between `$`
+signs. `src/scripts/handwriting.js` holds the model (a seeded random hand:
+per-glyph rotation, lift, size, pressure, plus per-word drift and slant),
+`sheet-canvas.js` repaints the sheet onto a canvas for copy and download —
+it reads back where every glyph landed rather than rasterising HTML, which
+Safari on an iPad does not do reliably. KaTeX is vendored: run
+`node scripts/vendor-katex.mjs` after bumping it to refresh `public/katex.css`
+and `public/fonts/katex/`. Both the typesetter and its stylesheet load only
+when a sheet actually contains maths.
+
 ## Adding a link to /links
 
 Edit `src/data/links.json` and append an object to `links`:

@@ -159,6 +159,12 @@ a { color: inherit; }
 .nav__links a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .nav__links a[aria-current='page'] { text-decoration: underline; text-underline-offset: 4px; }
 
+/* On a narrow phone the four links need the room the domain was using. */
+@media (max-width: 430px) {
+  .nav__mark small { display: none; }
+  .nav__links a { padding: 0 3px; font-size: 0.75rem; }
+}
+
 /* ─── hero: the word and its reflection ─────────────── */
 
 .hero {
