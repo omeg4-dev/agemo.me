@@ -1,24 +1,6 @@
 {
-  "generatedAt": "2026-10-17T09:18:49.562Z",
+  "generatedAt": "2026-10-18T09:33:39.343Z",
   "pinned": [
-    {
-      "name": "gamehub",
-      "description": "Multiplayer games on a TV, with phones as controllers over a QR code.",
-      "language": "JavaScript",
-      "pushedAt": "2026-09-02T20:00:56Z",
-      "url": "https://github.com/omeg4-dev/gamehub",
-      "accent": "hsl(208 78% 62%)",
-      "readmeLine": "🎮 Game Hub"
-    },
-    {
-      "name": "hypr-keybind-overlay",
-      "description": "Hyprland overlay that shows your keybinds on a picture of your keyboard.",
-      "language": "Python",
-      "pushedAt": "2026-09-02T20:00:58Z",
-      "url": "https://github.com/omeg4-dev/hypr-keybind-overlay",
-      "accent": "hsl(214 78% 62%)",
-      "readmeLine": "⌨️ keybind-overlay"
-    },
     {
       "name": "magpie",
       "description": "Wayland clipboard history in SQLite, with OCR search over copied images.",
@@ -36,6 +18,24 @@
       "url": "https://github.com/omeg4-dev/mc-jukebox",
       "accent": "hsl(204 78% 62%)",
       "readmeLine": "💿 mc-jukebox"
+    },
+    {
+      "name": "jot",
+      "description": "Tiny autosaving tabbed notes editor (GTK4 + libadwaita)",
+      "language": "Python",
+      "pushedAt": "2026-09-17T13:09:53Z",
+      "url": "https://github.com/omeg4-dev/jot",
+      "accent": "hsl(204 78% 62%)",
+      "readmeLine": "jot"
+    },
+    {
+      "name": "vista-sddm",
+      "description": "SDDM login theme: full-bleed photo or video background, quiet login column, and a setup that turns any video link into a calibrated background",
+      "language": "QML",
+      "pushedAt": "2026-09-07T20:35:20Z",
+      "url": "https://github.com/omeg4-dev/vista-sddm",
+      "accent": "hsl(223 78% 62%)",
+      "readmeLine": "vista"
     }
   ]
 }
