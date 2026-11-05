@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-11-04T12:57:37.262Z",
+  "generatedAt": "2026-11-05T13:09:14.839Z",
   "pinned": [
     {
       "name": "fmhy-android",
       "description": "Unofficial Android app for FMHY. The whole wiki on your phone, searchable, with bookmarks, and it works offline.",
       "language": "Kotlin",
-      "pushedAt": "2026-11-04T06:34:52Z",
+      "pushedAt": "2026-11-05T09:43:25Z",
       "url": "https://github.com/omeg4-dev/fmhy-android",
       "accent": "hsl(207 78% 62%)",
       "readmeLine": "FMHY for Android"
@@ -23,7 +23,7 @@
       "name": "magpie",
       "description": "Wayland clipboard history in SQLite, with OCR search over copied images.",
       "language": "Python",
-      "pushedAt": "2026-09-02T20:01:01Z",
+      "pushedAt": "2026-11-04T19:26:23Z",
       "url": "https://github.com/omeg4-dev/magpie",
       "accent": "hsl(204 78% 62%)",
       "readmeLine": "🐦‍⬛ magpie"
