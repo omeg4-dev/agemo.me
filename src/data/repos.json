@@ -1,23 +1,14 @@
 {
-  "generatedAt": "2026-11-18T13:54:36.292Z",
+  "generatedAt": "2026-11-19T14:23:30.572Z",
   "pinned": [
     {
       "name": "fmhy-android",
       "description": "Unofficial Android app for FMHY. The whole wiki on your phone, searchable, with bookmarks, and it works offline.",
       "language": "Kotlin",
-      "pushedAt": "2026-11-18T11:51:27Z",
+      "pushedAt": "2026-11-19T11:48:04Z",
       "url": "https://github.com/omeg4-dev/fmhy-android",
       "accent": "hsl(207 78% 62%)",
       "readmeLine": "FMHY for Android"
-    },
-    {
-      "name": "hypr-keybind-overlay",
-      "description": "Hyprland overlay that shows your keybinds on a picture of your keyboard.",
-      "language": "Python",
-      "pushedAt": "2026-09-02T20:00:58Z",
-      "url": "https://github.com/omeg4-dev/hypr-keybind-overlay",
-      "accent": "hsl(214 78% 62%)",
-      "readmeLine": "⌨️ keybind-overlay"
     },
     {
       "name": "magpie",
@@ -27,33 +18,6 @@
       "url": "https://github.com/omeg4-dev/magpie",
       "accent": "hsl(204 78% 62%)",
       "readmeLine": "🐦‍⬛ magpie"
-    },
-    {
-      "name": "mc-jukebox",
-      "description": "Minecraft-style jukebox widget for the Noctalia bar, drawn in Cairo.",
-      "language": "Python",
-      "pushedAt": "2026-09-02T20:04:49Z",
-      "url": "https://github.com/omeg4-dev/mc-jukebox",
-      "accent": "hsl(204 78% 62%)",
-      "readmeLine": "💿 mc-jukebox"
-    },
-    {
-      "name": "jot",
-      "description": "Tiny autosaving tabbed notes editor (GTK4 + libadwaita)",
-      "language": "Python",
-      "pushedAt": "2026-09-17T13:09:53Z",
-      "url": "https://github.com/omeg4-dev/jot",
-      "accent": "hsl(204 78% 62%)",
-      "readmeLine": "jot"
-    },
-    {
-      "name": "vista-sddm",
-      "description": "SDDM login theme: full-bleed photo or video background, quiet login column, and a setup that turns any video link into a calibrated background",
-      "language": "QML",
-      "pushedAt": "2026-09-07T20:35:20Z",
-      "url": "https://github.com/omeg4-dev/vista-sddm",
-      "accent": "hsl(223 78% 62%)",
-      "readmeLine": "vista"
     }
   ]
 }
